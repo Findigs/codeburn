@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { extractBashCommands } from '../src/bash-utils.js'
+import { extractBashCommands, isBashTool } from '../src/bash-utils.js'
 
 describe('extractBashCommands', () => {
   it('extracts single command', () => {
@@ -49,4 +49,18 @@ describe('extractBashCommands', () => {
   it('handles command with quotes containing separators', () => {
     expect(extractBashCommands('echo "hello && world"')).toEqual(['echo'])
   })
+
+  it('handles quoted separators followed by real separator', () => {
+    expect(extractBashCommands('echo "hello && world" && git status')).toEqual(['echo', 'git'])
+  })
+
+  it('handles single-quoted separators', () => {
+    expect(extractBashCommands("echo 'hello && world'")).toEqual(['echo'])
+  })
+})
+
+describe('isBashTool', () => {
+  it('recognizes Bash', () => { expect(isBashTool('Bash')).toBe(true) })
+  it('recognizes BashTool', () => { expect(isBashTool('BashTool')).toBe(true) })
+  it('rejects unknown tools', () => { expect(isBashTool('Read')).toBe(false) })
 })

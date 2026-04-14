@@ -8,7 +8,7 @@ const BASH_TOOLS = new Set(['Bash', 'BashTool', 'PowerShellTool'])
  * command boundaries.
  */
 function stripQuotedStrings(command: string): string {
-  return command.replace(/"[^"]*"|'[^']*'/g, '""')
+  return command.replace(/"[^"]*"|'[^']*'/g, match => ' '.repeat(match.length))
 }
 
 export function extractBashCommands(command: string): string[] {
