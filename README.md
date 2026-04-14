@@ -64,6 +64,22 @@ codeburn uninstall-menubar  # remove it
 
 Requires [SwiftBar](https://github.com/swiftbar/SwiftBar) (`brew install --cask swiftbar`). Shows today's cost in the menu bar with a flame icon. Dropdown shows activity breakdown, model costs, and token stats for today, 7 days, and month. Refreshes every 5 minutes.
 
+## Currency
+
+By default, costs are shown in USD. To display in a different currency:
+
+```bash
+codeburn config currency GBP     # set to British Pounds
+codeburn config currency AUD     # set to Australian Dollars
+codeburn config currency JPY     # set to Japanese Yen
+codeburn config currency         # show current setting
+codeburn config currency --reset # back to USD
+```
+
+Any [ISO 4217 currency code](https://en.wikipedia.org/wiki/ISO_4217#List_of_ISO_4217_currency_codes) is supported (162 currencies). Exchange rates are fetched from [Frankfurter](https://www.frankfurter.app/) (European Central Bank data, free, no API key) and cached for 24 hours at `~/.cache/codeburn/`. Config is stored at `~/.config/codeburn/config.json`.
+
+The currency setting applies everywhere: dashboard, status bar, menu bar widget, CSV/JSON exports, and JSON API output.
+
 ## What it tracks
 
 **13 task categories** classified from tool usage patterns and user message keywords. No LLM calls, fully deterministic.
@@ -109,6 +125,8 @@ src/
   format.ts       Text rendering (status bar)
   menubar.ts      SwiftBar plugin generator
   export.ts       CSV/JSON multi-period export
+  config.ts       Config file management (~/.config/codeburn/)
+  currency.ts     Currency conversion, exchange rates, Intl formatting
 ```
 
 ## License
