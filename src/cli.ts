@@ -58,8 +58,6 @@ const program = new Command()
   .description('See where your AI coding tokens go - by task, tool, model, and project')
   .version('0.4.0')
 
-// Load currency config before any command runs.
-// If no currency is configured, this is a no-op and everything stays USD.
 program.hook('preAction', async () => {
   await loadCurrency()
 })
@@ -216,19 +214,12 @@ program
     console.log(result)
   })
 
-// --- Config commands ---
-
-const configCmd = program
-  .command('config')
-  .description('View or set configuration')
-
-configCmd
+program
   .command('currency [code]')
-  .description('Set display currency (e.g. codeburn config currency AUD)')
+  .description('Set display currency (e.g. codeburn currency GBP)')
   .option('--symbol <symbol>', 'Override the currency symbol')
   .option('--reset', 'Reset to USD (removes currency config)')
   .action(async (code?: string, opts?: { symbol?: string; reset?: boolean }) => {
-    // Reset: remove currency from config
     if (opts?.reset) {
       const config = await readConfig()
       delete config.currency
@@ -237,7 +228,6 @@ configCmd
       return
     }
 
-    // Show: display current setting
     if (!code) {
       const { code: activeCode, rate, symbol } = getCurrency()
       if (activeCode === 'USD' && rate === 1) {
@@ -252,7 +242,6 @@ configCmd
       return
     }
 
-    // Set: validate and save
     const upperCode = code.toUpperCase()
     if (!isValidCurrencyCode(upperCode)) {
       console.error(`\n  "${code}" is not a valid ISO 4217 currency code.\n`)
@@ -267,7 +256,6 @@ configCmd
     }
     await saveConfig(config)
 
-    // Load the currency to fetch the rate and confirm it works
     await loadCurrency()
     const { rate, symbol } = getCurrency()
 
