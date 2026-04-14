@@ -420,18 +420,16 @@ function DashboardContent({ projects, period }: { projects: ProjectSummary[]; pe
         <ProjectBreakdown projects={projects} pw={pw} bw={barWidth} />
       </Row>
 
-      <Row wide={wide} width={dashWidth}>
-        <ModelBreakdown projects={projects} pw={pw} bw={barWidth} />
-        <ActivityBreakdown projects={projects} pw={pw} bw={barWidth} />
-      </Row>
+      <ActivityBreakdown projects={projects} pw={dashWidth} bw={barWidth} />
 
       <Row wide={wide} width={dashWidth}>
+        <ModelBreakdown projects={projects} pw={pw} bw={barWidth} />
         <ToolBreakdown projects={projects} pw={pw} bw={barWidth} />
-        <McpBreakdown projects={projects} pw={pw} bw={barWidth} />
       </Row>
 
       <Row wide={wide} width={dashWidth}>
         <BashBreakdown projects={projects} pw={pw} bw={barWidth} />
+        <McpBreakdown projects={projects} pw={pw} bw={barWidth} />
       </Row>
     </Box>
   )

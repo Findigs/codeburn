@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.3.1 - 2026-04-14
+
+### Added
+- Shell Commands breakdown panel showing which CLI binaries are used most
+  (git, npm, docker, etc.). Parses compound commands (&&, ;, |) and handles
+  quoted strings. Contributed by @rafaelcalleja.
+
+### Changed
+- Activity panel is now full-width so the 1-shot column renders cleanly
+  on all terminal sizes.
+
+### Fixed
+- Crash on unreadable session files (ENOENT). Skips gracefully instead.
+
 ## 0.3.0 - 2026-04-14
 
 ### Added
