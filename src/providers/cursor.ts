@@ -166,7 +166,9 @@ function parseBubbles(db: SqliteDatabase, seenKeys: Set<string>): { calls: Parse
 
       const timestamp = createdAt || ''
       const convMessages = userMessages.get(conversationId) ?? []
-      const userText = convMessages.length > 0 ? convMessages.shift()! : (row.user_text ?? '')
+      const userQuestion = convMessages.length > 0 ? convMessages.shift()! : ''
+      const assistantText = row.user_text ?? ''
+      const userText = (userQuestion + ' ' + assistantText).trim()
 
       const languages = extractLanguages(row.code_blocks)
       const hasCode = languages.length > 0
