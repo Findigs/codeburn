@@ -153,7 +153,7 @@ function parseBubbles(db: SqliteDatabase, seenKeys: Set<string>): { calls: Parse
       const outputTokens = row.output_tokens ?? 0
       if (inputTokens === 0 && outputTokens === 0) continue
 
-      const createdAt = (row.created_at as string) ?? ''
+      const createdAt = row.created_at ?? ''
       const conversationId = row.conversation_id ?? 'unknown'
       const dedupKey = `cursor:${conversationId}:${createdAt}:${inputTokens}:${outputTokens}`
 
@@ -174,7 +174,7 @@ function parseBubbles(db: SqliteDatabase, seenKeys: Set<string>): { calls: Parse
       const languages = extractLanguages(row.code_blocks)
       const hasCode = languages.length > 0
 
-      const cursorTools: string[] = hasCode ? ['Edit', ...languages.map(l => `lang:${l}`)] : []
+      const cursorTools: string[] = hasCode ? ['cursor:edit', ...languages.map(l => `lang:${l}`)] : []
 
       results.push({
         provider: 'cursor',
@@ -238,8 +238,6 @@ function createParser(source: SessionSource, seenKeys: Set<string>): SessionPars
           return
         }
 
-        await new Promise(r => setTimeout(r, 0))
-
         const { calls } = parseBubbles(db, seenKeys)
 
         await writeCachedResults(source.path, calls)
@@ -264,39 +262,7 @@ export function createCursorProvider(dbPathOverride?: string): Provider {
     },
 
     toolDisplayName(rawTool: string): string {
-      if (rawTool === 'Edit') return 'Edit'
-      const lang = rawTool.startsWith('lang:') ? rawTool.slice(5) : null
-      if (!lang) return rawTool
-      const langNames: Record<string, string> = {
-        javascript: 'JavaScript',
-        typescript: 'TypeScript',
-        python: 'Python',
-        rust: 'Rust',
-        go: 'Go',
-        java: 'Java',
-        cpp: 'C++',
-        c: 'C',
-        csharp: 'C#',
-        ruby: 'Ruby',
-        php: 'PHP',
-        swift: 'Swift',
-        kotlin: 'Kotlin',
-        html: 'HTML',
-        css: 'CSS',
-        scss: 'SCSS',
-        json: 'JSON',
-        yaml: 'YAML',
-        markdown: 'Markdown',
-        sql: 'SQL',
-        shell: 'Shell',
-        shellscript: 'Shell Script',
-        bash: 'Bash',
-        typescriptreact: 'TSX',
-        javascriptreact: 'JSX',
-        dockerfile: 'Dockerfile',
-        toml: 'TOML',
-      }
-      return langNames[lang] ?? lang
+      return rawTool
     },
 
     async discoverSessions(): Promise<SessionSource[]> {

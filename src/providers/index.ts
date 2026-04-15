@@ -39,9 +39,11 @@ export async function discoverAllSessions(providerFilter?: string): Promise<Sess
   return all
 }
 
-export function getProvider(name: string): Provider | undefined {
-  return cursorProvider?.name === name
-    ? cursorProvider
-    : coreProviders.find(p => p.name === name)
+export async function getProvider(name: string): Promise<Provider | undefined> {
+  if (name === 'cursor') {
+    const cursor = await loadCursor()
+    return cursor ?? undefined
+  }
+  return coreProviders.find(p => p.name === name)
 }
 
