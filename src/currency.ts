@@ -40,7 +40,7 @@ function getFractionDigits(code: string): number {
   return new Intl.NumberFormat('en', {
     style: 'currency',
     currency: code,
-  }).resolvedOptions().maximumFractionDigits
+  }).resolvedOptions().maximumFractionDigits ?? 2
 }
 
 function getCacheDir(): string {

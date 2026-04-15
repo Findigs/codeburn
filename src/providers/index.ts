@@ -17,11 +17,29 @@ async function loadCursor(): Promise<Provider | null> {
   }
 }
 
+let opencodeProvider: Provider | null = null
+let opencodeLoadAttempted = false
+
+async function loadOpenCode(): Promise<Provider | null> {
+  if (opencodeLoadAttempted) return opencodeProvider
+  opencodeLoadAttempted = true
+  try {
+    const { opencode } = await import('./opencode.js')
+    opencodeProvider = opencode
+    return opencode
+  } catch {
+    return null
+  }
+}
+
 const coreProviders: Provider[] = [claude, codex]
 
 export async function getAllProviders(): Promise<Provider[]> {
-  const cursor = await loadCursor()
-  return cursor ? [...coreProviders, cursor] : [...coreProviders]
+  const [cursor, opencode] = await Promise.all([loadCursor(), loadOpenCode()])
+  const all = [...coreProviders]
+  if (cursor) all.push(cursor)
+  if (opencode) all.push(opencode)
+  return all
 }
 
 export const providers = coreProviders
@@ -43,6 +61,10 @@ export async function getProvider(name: string): Promise<Provider | undefined> {
   if (name === 'cursor') {
     const cursor = await loadCursor()
     return cursor ?? undefined
+  }
+  if (name === 'opencode') {
+    const oc = await loadOpenCode()
+    return oc ?? undefined
   }
   return coreProviders.find(p => p.name === name)
 }

@@ -6,12 +6,30 @@ describe('provider registry', () => {
     expect(providers.map(p => p.name)).toEqual(['claude', 'codex'])
   })
 
-  it('includes cursor after async load', async () => {
+  it('includes sqlite providers after async load', async () => {
     const all = await getAllProviders()
     const names = all.map(p => p.name)
     expect(names).toContain('claude')
     expect(names).toContain('codex')
     expect(names.length).toBeGreaterThanOrEqual(2)
+  })
+
+  it('opencode model display names strip provider prefix', async () => {
+    const all = await getAllProviders()
+    const oc = all.find(p => p.name === 'opencode')
+    if (!oc) return
+    expect(oc.modelDisplayName('anthropic/claude-opus-4-6-20260205')).toBe('Opus 4.6')
+    expect(oc.modelDisplayName('google/gemini-2.5-pro')).toBe('Gemini 2.5 Pro')
+  })
+
+  it('opencode tool display names normalize builtins', async () => {
+    const all = await getAllProviders()
+    const oc = all.find(p => p.name === 'opencode')
+    if (!oc) return
+    expect(oc.toolDisplayName('bash')).toBe('Bash')
+    expect(oc.toolDisplayName('edit')).toBe('Edit')
+    expect(oc.toolDisplayName('task')).toBe('Agent')
+    expect(oc.toolDisplayName('unknown_tool')).toBe('unknown_tool')
   })
 
   it('claude tool display names are identity', () => {
