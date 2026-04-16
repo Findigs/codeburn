@@ -82,7 +82,6 @@ function buildJsonReport(projects: ProjectSummary[], period: string) {
   const allInput = totalInput + totalCacheRead + totalCacheWrite
   const cacheHitPercent = allInput > 0 ? Math.round((totalCacheRead / allInput) * 1000) / 10 : 0
 
-  // daily
   const dailyMap: Record<string, { cost: number; calls: number }> = {}
   for (const sess of sessions) {
     for (const turn of sess.turns) {
@@ -101,7 +100,6 @@ function buildJsonReport(projects: ProjectSummary[], period: string) {
     calls: d.calls,
   }))
 
-  // projects
   const projectList = projects.map(p => ({
     name: p.project,
     path: p.projectPath,
@@ -110,7 +108,6 @@ function buildJsonReport(projects: ProjectSummary[], period: string) {
     sessions: p.sessions.length,
   }))
 
-  // models
   const modelMap: Record<string, { calls: number; cost: number; inputTokens: number; outputTokens: number; cacheReadTokens: number; cacheWriteTokens: number }> = {}
   for (const sess of sessions) {
     for (const [model, d] of Object.entries(sess.modelBreakdown)) {
@@ -127,7 +124,6 @@ function buildJsonReport(projects: ProjectSummary[], period: string) {
     .sort(([, a], [, b]) => b.cost - a.cost)
     .map(([name, { cost, ...rest }]) => ({ name, ...rest, cost: convertCost(cost) }))
 
-  // activities
   const catMap: Record<string, { turns: number; cost: number; editTurns: number; oneShotTurns: number }> = {}
   for (const sess of sessions) {
     for (const [cat, d] of Object.entries(sess.categoryBreakdown)) {
@@ -149,7 +145,6 @@ function buildJsonReport(projects: ProjectSummary[], period: string) {
       oneShotRate: d.editTurns > 0 ? Math.round((d.oneShotTurns / d.editTurns) * 1000) / 10 : null,
     }))
 
-  // tools
   const toolMap: Record<string, number> = {}
   const mcpMap: Record<string, number> = {}
   const bashMap: Record<string, number> = {}
