@@ -16,7 +16,9 @@ final class UpdateChecker {
     var updateAvailable: Bool {
         guard let latest = latestVersion else { return false }
         let current = currentVersion
-        return !current.isEmpty && current != "dev" && latest != current
+        let normalizedLatest = latest.hasPrefix("v") ? String(latest.dropFirst()) : latest
+        let normalizedCurrent = current.hasPrefix("v") ? String(current.dropFirst()) : current
+        return !normalizedCurrent.isEmpty && normalizedCurrent != "dev" && normalizedLatest != normalizedCurrent
     }
 
     var currentVersion: String {
@@ -63,8 +65,22 @@ final class UpdateChecker {
         updateError = nil
 
         let process = CodeburnCLI.makeProcess(subcommand: ["menubar", "--force"])
+        let errPipe = Pipe()
         process.standardOutput = FileHandle.nullDevice
-        process.standardError = FileHandle.nullDevice
+        process.standardError = errPipe
+
+        process.terminationHandler = { [weak self] proc in
+            let errData = errPipe.fileHandleForReading.readDataToEndOfFile()
+            let stderr = String(data: errData, encoding: .utf8) ?? ""
+            Task { @MainActor in
+                guard let self else { return }
+                if proc.terminationStatus != 0 {
+                    self.isUpdating = false
+                    self.updateError = stderr.isEmpty ? "Update failed (exit \(proc.terminationStatus))" : stderr
+                    NSLog("CodeBurn: update failed (exit \(proc.terminationStatus)): \(stderr)")
+                }
+            }
+        }
 
         do {
             try process.run()
