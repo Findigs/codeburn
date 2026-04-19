@@ -15,7 +15,6 @@ const GOLD = '#FFD700'
 const LOW_DATA_THRESHOLD = 20
 const LABEL_WIDTH = 20
 const VALUE_WIDTH = 14
-const WINNER_WIDTH = 16
 const MODEL_NAME_COL = 24
 const MS_PER_DAY = 24 * 60 * 60 * 1000
 
@@ -163,21 +162,17 @@ function ComparisonResults({ modelA, modelB, rows, onBack }: ComparisonResultsPr
         {rows.map(row => {
           const fmtA = formatValue(row.valueA, row.formatFn)
           const fmtB = formatValue(row.valueB, row.formatFn)
-          const winnerLabel = row.winner === 'a' ? `${nameA} wins`
-            : row.winner === 'b' ? `${nameB} wins`
-            : row.winner === 'tie' ? 'tie' : ''
 
           return (
             <Text key={row.label}>
               <Text dimColor>{row.label.padEnd(LABEL_WIDTH)}</Text>
               <Text color={row.winner === 'a' ? GREEN : undefined}>{fmtA.padStart(VALUE_WIDTH)}</Text>
               <Text color={row.winner === 'b' ? GREEN : undefined}>{fmtB.padStart(VALUE_WIDTH)}</Text>
-              <Text color={DIM}>{'  '}{winnerLabel.padEnd(WINNER_WIDTH)}</Text>
             </Text>
           )
         })}
         <Text> </Text>
-        <Text dimColor>{'-- Context '.padEnd(LABEL_WIDTH + VALUE_WIDTH * 2 + WINNER_WIDTH, '-')}</Text>
+        <Text dimColor>{'-- Context '.padEnd(LABEL_WIDTH + VALUE_WIDTH * 2, '-')}</Text>
         {contextRows.map(row => (
           <Text key={row.label}>
             <Text color={DIM}>{row.label.padEnd(LABEL_WIDTH)}</Text>
