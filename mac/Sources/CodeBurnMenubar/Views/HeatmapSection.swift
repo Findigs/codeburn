@@ -1041,7 +1041,6 @@ private struct PlanLoadingView: View {
 
 private struct PlanNoCredentialsView: View {
     @Environment(AppStore.self) private var store
-    @State private var showManualFallback = false
 
     var body: some View {
         VStack(spacing: 8) {
@@ -1051,32 +1050,17 @@ private struct PlanNoCredentialsView: View {
             Text("No Claude subscription connected")
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(.primary)
-            if showManualFallback {
-                Text("Terminal.app isn't available. Open your terminal and run `claude login`, then click Retry.")
-                    .font(.system(size: 10.5))
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-                    .frame(maxWidth: 280)
-            } else {
-                Text("Click Connect to sign in with Claude, then return here.")
-                    .font(.system(size: 10.5))
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-                    .frame(maxWidth: 260)
+            Text("Sign in with Claude Code, then click Retry.")
+                .font(.system(size: 10.5))
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: 260)
+            Button("Retry") {
+                Task { await store.refreshSubscription() }
             }
-            HStack(spacing: 8) {
-                Button("Connect Claude") {
-                    if !TerminalLauncher.openClaudeLogin() { showManualFallback = true }
-                }
-                .controlSize(.small)
-                .buttonStyle(.borderedProminent)
-                .tint(Theme.brandAccent)
-                Button("Retry") {
-                    Task { await store.refreshSubscription() }
-                }
-                .controlSize(.small)
-                .buttonStyle(.bordered)
-            }
+            .controlSize(.small)
+            .buttonStyle(.borderedProminent)
+            .tint(Theme.brandAccent)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 14)
@@ -1086,7 +1070,6 @@ private struct PlanNoCredentialsView: View {
 private struct PlanFailedView: View {
     @Environment(AppStore.self) private var store
     let error: String?
-    @State private var showManualFallback = false
 
     var body: some View {
         VStack(spacing: 8) {
@@ -1096,13 +1079,7 @@ private struct PlanFailedView: View {
             Text("Couldn't load plan data")
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(.primary)
-            if showManualFallback {
-                Text("Terminal.app isn't available. Open your terminal and run `claude login`, then click Retry.")
-                    .font(.system(size: 10.5))
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-                    .frame(maxWidth: 280)
-            } else if let error {
+            if let error {
                 Text(error)
                     .font(.system(size: 10))
                     .foregroundStyle(.tertiary)
@@ -1110,19 +1087,12 @@ private struct PlanFailedView: View {
                     .frame(maxWidth: 280)
                     .lineLimit(3)
             }
-            HStack(spacing: 8) {
-                Button("Reconnect Claude") {
-                    if !TerminalLauncher.openClaudeLogin() { showManualFallback = true }
-                }
-                .controlSize(.small)
-                .buttonStyle(.borderedProminent)
-                .tint(Theme.brandAccent)
-                Button("Retry") {
-                    Task { await store.refreshSubscription() }
-                }
-                .controlSize(.small)
-                .buttonStyle(.bordered)
+            Button("Retry") {
+                Task { await store.refreshSubscription() }
             }
+            .controlSize(.small)
+            .buttonStyle(.borderedProminent)
+            .tint(Theme.brandAccent)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 14)
