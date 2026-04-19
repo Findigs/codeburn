@@ -9,8 +9,6 @@
 <p align="center">
   <a href="https://www.npmjs.com/package/codeburn"><img src="https://img.shields.io/npm/v/codeburn.svg" alt="npm version" /></a>
   <a href="https://www.npmjs.com/package/codeburn"><img src="https://img.shields.io/npm/dt/codeburn.svg" alt="total downloads" /></a>
-  <a href="https://www.npmjs.com/package/codeburn"><img src="https://img.shields.io/npm/dm/codeburn.svg" alt="monthly downloads" /></a>
-  <a href="https://bundlephobia.com/package/codeburn"><img src="https://img.shields.io/bundlephobia/min/codeburn" alt="install size" /></a>
   <a href="https://github.com/getagentseal/codeburn/blob/main/LICENSE"><img src="https://img.shields.io/npm/l/codeburn.svg" alt="license" /></a>
   <a href="https://github.com/getagentseal/codeburn"><img src="https://img.shields.io/badge/node-%3E%3D20-brightgreen.svg" alt="node version" /></a>
 </p>
@@ -170,7 +168,7 @@ The menu bar widget includes a currency picker with 17 common currencies. For an
 
 ## Menu Bar
 
-<img src="https://cdn.jsdelivr.net/gh/getagentseal/codeburn@main/assets/menubar-0.7.2.png" alt="CodeBurn macOS menubar app" width="420" />
+<img src="https://cdn.jsdelivr.net/gh/getagentseal/codeburn@main/assets/menubar-0.8.0.png" alt="CodeBurn macOS menubar app" width="420" />
 
 ```bash
 npx codeburn menubar
