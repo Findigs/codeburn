@@ -68,6 +68,10 @@ To add a new provider: create a single file in `src/providers/`, implement the `
 
 The Semgrep CI rule enforces: in `src/providers/*.ts` and `src/parser.ts`, never do bracket-assign (`map[key] = ...`) on a map created with `{}`. Use `Object.create(null)` to prevent prototype pollution from external session data. A dedicated test suite exists at `tests/security/prototype-pollution.test.ts`.
 
+## Workflow
+
+Push directly to `main` — no PRs for now.
+
 ### TypeScript conventions
 
 - ESM-only (`"type": "module"` in package.json), all imports use `.js` extensions
