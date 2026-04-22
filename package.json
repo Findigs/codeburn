@@ -14,7 +14,7 @@
     "build": "tsup",
     "dev": "tsx src/cli.ts",
     "test": "vitest",
-    "prepare": "node node_modules/tsup/dist/cli-default.js",
+    "prepare": "npx --yes tsup",
     "update-pricing": "curl -sL https://raw.githubusercontent.com/BerriAI/litellm/main/model_prices_and_context_window.json | node scripts/prune-pricing.mjs"
   },
   "keywords": [
