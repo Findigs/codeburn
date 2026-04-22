@@ -24,7 +24,7 @@ Works by reading session data directly from disk. No wrapper, no proxy, no API k
 ## Install
 
 ```bash
-npm install -g github:Findigs/codeburn
+npm install -g --install-links github:Findigs/codeburn
 ```
 
 Or run without installing:
