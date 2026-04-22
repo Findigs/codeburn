@@ -24,13 +24,13 @@ Works by reading session data directly from disk. No wrapper, no proxy, no API k
 ## Install
 
 ```bash
-npm install -g codeburn
+npm install -g github:Findigs/codeburn
 ```
 
 Or run without installing:
 
 ```bash
-npx codeburn
+npx github:Findigs/codeburn
 ```
 
 ### Requirements
@@ -206,7 +206,7 @@ The progress bar shows API-equivalent cost vs subscription price. Presets use pu
 <img src="https://cdn.jsdelivr.net/gh/getagentseal/codeburn@main/assets/menubar-0.8.0.png" alt="CodeBurn macOS menubar app" width="420" />
 
 ```bash
-npx codeburn menubar
+npx github:Findigs/codeburn menubar
 ```
 
 One command: downloads the latest `.app`, installs into `~/Applications`, and launches it. Re-run with `--force` to reinstall. Native Swift + SwiftUI app lives in `mac/` (see `mac/README.md` for build details). Shows today's cost with a flame icon, opens a popover with agent tabs, period switcher (Today / 7 Days / 30 Days / Month / All), Trend / Forecast / Pulse / Stats / Plan insights, activity and model breakdowns, optimize findings, and CSV/JSON export. Refreshes live via FSEvents plus a 15-second poll.
