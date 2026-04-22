@@ -1,8 +1,8 @@
 name: Release macOS Menubar
 
-# Builds on every push to main and on PRs (build-only, no publish).
-# On a `mac-v*` tag push, also creates a GitHub Release with the signed zip.
-# Manual dispatch uploads the zip as a workflow artifact.
+# Builds on every push to main, PRs, and manual dispatch.
+# Every main push creates a GitHub Release (tagged releases use the tag name,
+# other main pushes auto-release as mac-ci-<sha>).
 on:
   push:
     branches: [main]
@@ -51,8 +51,7 @@ jobs:
             echo "SHA-256 for ${zip}: $(cat "${zip}.sha256")"
           done
 
-      - name: Upload artifact (for manual runs)
-        if: github.event_name == 'workflow_dispatch'
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: CodeBurnMenubar-${{ steps.version.outputs.value }}
@@ -62,10 +61,10 @@ jobs:
           if-no-files-found: error
 
       - name: Create / update GitHub Release
-        if: startsWith(github.ref, 'refs/tags/mac-v')
+        if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/mac-v')
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref_name }}
+          tag_name: mac-${{ steps.version.outputs.value }}
           name: Menubar ${{ steps.version.outputs.value }}
           body: |
             Install with:
