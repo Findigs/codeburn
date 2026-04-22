@@ -1,3 +1,4 @@
+import { cpSync, mkdirSync } from 'fs'
 import { defineConfig } from 'tsup'
 
 export default defineConfig({
@@ -11,5 +12,9 @@ export default defineConfig({
   dts: false,
   banner: {
     js: '#!/usr/bin/env node',
+  },
+  onSuccess: async () => {
+    mkdirSync('dist/data', { recursive: true })
+    cpSync('src/data/litellm-pricing.json', 'dist/data/litellm-pricing.json')
   },
 })

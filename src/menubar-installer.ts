@@ -1,5 +1,6 @@
+import { createHash } from 'node:crypto'
 import { spawn } from 'node:child_process'
-import { createWriteStream } from 'node:fs'
+import { createReadStream, createWriteStream } from 'node:fs'
 import { mkdir, mkdtemp, rename, rm, stat } from 'node:fs/promises'
 import { homedir, platform, tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -19,6 +20,7 @@ export type InstallResult = { installedPath: string; launched: boolean }
 
 type ReleaseAsset = { name: string; browser_download_url: string }
 type ReleaseResponse = { tag_name: string; assets: ReleaseAsset[] }
+type ResolvedAsset = { zip: ReleaseAsset; expectedHash: string | null }
 
 function userApplicationsDir(): string {
   return join(homedir(), 'Applications')
@@ -57,10 +59,9 @@ async function sysProductVersion(): Promise<string> {
   })
 }
 
-async function fetchLatestReleaseAsset(): Promise<ReleaseAsset> {
+async function fetchLatestReleaseAsset(): Promise<ResolvedAsset> {
   const response = await fetch(RELEASE_API, {
     headers: {
-      // Identify the installer so GitHub's abuse heuristics treat us as a known client.
       'User-Agent': 'codeburn-menubar-installer',
       Accept: 'application/vnd.github+json',
     },
@@ -69,14 +70,46 @@ async function fetchLatestReleaseAsset(): Promise<ReleaseAsset> {
     throw new Error(`GitHub release lookup failed: HTTP ${response.status}`)
   }
   const body = await response.json() as ReleaseResponse
-  const asset = body.assets.find(a => ASSET_PATTERN.test(a.name))
-  if (!asset) {
+  const zip = body.assets.find(a => ASSET_PATTERN.test(a.name))
+  if (!zip) {
     throw new Error(
       `No ${APP_BUNDLE_NAME} zip found in release ${body.tag_name}. ` +
       `Check https://github.com/getagentseal/codeburn/releases.`
     )
   }
-  return asset
+
+  const sha256Asset = body.assets.find(a => a.name === zip.name + '.sha256')
+  let expectedHash: string | null = null
+  if (sha256Asset) {
+    const hashResp = await fetch(sha256Asset.browser_download_url, {
+      headers: { 'User-Agent': 'codeburn-menubar-installer' },
+      redirect: 'follow',
+    })
+    if (hashResp.ok) {
+      const text = (await hashResp.text()).trim()
+      const match = text.match(/^([0-9a-f]{64})\b/i)
+      if (match) expectedHash = match[1].toLowerCase()
+    }
+  }
+
+  return { zip, expectedHash }
+}
+
+async function computeFileHash(filePath: string): Promise<string> {
+  const hash = createHash('sha256')
+  await pipeline(createReadStream(filePath), hash)
+  return hash.digest('hex')
+}
+
+function verifyHash(actual: string, expected: string, assetName: string): void {
+  if (actual !== expected) {
+    throw new Error(
+      `SHA-256 mismatch for ${assetName}.\n` +
+      `  Expected: ${expected}\n` +
+      `  Actual:   ${actual}\n` +
+      `The download may have been tampered with. Aborting.`
+    )
+  }
 }
 
 async function downloadToFile(url: string, destPath: string): Promise<void> {
@@ -134,13 +167,24 @@ export async function installMenubarApp(options: { force?: boolean } = {}): Prom
   }
 
   console.log('Looking up the latest CodeBurn Menubar release...')
-  const asset = await fetchLatestReleaseAsset()
+  const { zip: asset, expectedHash } = await fetchLatestReleaseAsset()
+
+  if (!expectedHash) {
+    throw new Error(
+      `No SHA-256 checksum file (${asset.name}.sha256) found in the release.\n` +
+      `Cannot verify download integrity. Publish a checksum alongside the release asset.`
+    )
+  }
 
   const stagingDir = await mkdtemp(join(tmpdir(), 'codeburn-menubar-'))
   try {
     const archivePath = join(stagingDir, asset.name)
     console.log(`Downloading ${asset.name}...`)
     await downloadToFile(asset.browser_download_url, archivePath)
+
+    console.log('Verifying SHA-256 checksum...')
+    const actualHash = await computeFileHash(archivePath)
+    verifyHash(actualHash, expectedHash, asset.name)
 
     console.log('Unpacking...')
     await runCommand('/usr/bin/unzip', ['-q', archivePath, '-d', stagingDir])

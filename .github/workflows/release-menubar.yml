@@ -40,12 +40,22 @@ jobs:
       - name: Build + bundle + zip
         run: mac/Scripts/package-app.sh "${{ steps.version.outputs.value }}"
 
+      - name: Generate SHA-256 checksums
+        run: |
+          cd mac/.build/dist
+          for zip in CodeBurnMenubar-*.zip; do
+            shasum -a 256 "$zip" | awk '{print $1}' > "${zip}.sha256"
+            echo "SHA-256 for ${zip}: $(cat "${zip}.sha256")"
+          done
+
       - name: Upload artifact (for manual runs)
         if: github.event_name == 'workflow_dispatch'
         uses: actions/upload-artifact@v4
         with:
           name: CodeBurnMenubar-${{ steps.version.outputs.value }}
-          path: mac/.build/dist/CodeBurnMenubar-*.zip
+          path: |
+            mac/.build/dist/CodeBurnMenubar-*.zip
+            mac/.build/dist/CodeBurnMenubar-*.zip.sha256
           if-no-files-found: error
 
       - name: Create / update GitHub Release
@@ -65,5 +75,10 @@ jobs:
             quarantine, and launches it. If you download the zip from this page directly
             and macOS shows "cannot verify developer", right-click the app in Finder and
             pick Open to whitelist it once.
-          files: mac/.build/dist/CodeBurnMenubar-*.zip
+
+            The installer verifies the download against the `.sha256` checksum
+            file published alongside each zip.
+          files: |
+            mac/.build/dist/CodeBurnMenubar-*.zip
+            mac/.build/dist/CodeBurnMenubar-*.zip.sha256
           fail_on_unmatched_files: true

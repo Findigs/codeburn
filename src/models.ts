@@ -1,6 +1,6 @@
-import { readFile, writeFile, mkdir } from 'fs/promises'
+import { readFileSync } from 'fs'
 import { join } from 'path'
-import { homedir } from 'os'
+import { fileURLToPath } from 'url'
 
 export type ModelCosts = {
   inputCostPerToken: number
@@ -19,8 +19,6 @@ type LiteLLMEntry = {
   provider_specific_entry?: { fast?: number }
 }
 
-const LITELLM_URL = 'https://raw.githubusercontent.com/BerriAI/litellm/main/model_prices_and_context_window.json'
-const CACHE_TTL_MS = 24 * 60 * 60 * 1000
 const WEB_SEARCH_COST = 0.01
 
 const FALLBACK_PRICING: Record<string, ModelCosts> = {
@@ -55,14 +53,6 @@ const FALLBACK_PRICING: Record<string, ModelCosts> = {
 
 let pricingCache: Map<string, ModelCosts> | null = null
 
-function getCacheDir(): string {
-  return join(homedir(), '.cache', 'codeburn')
-}
-
-function getCachePath(): string {
-  return join(getCacheDir(), 'litellm-pricing.json')
-}
-
 function parseLiteLLMEntry(entry: LiteLLMEntry): ModelCosts | null {
   if (entry.input_cost_per_token === undefined || entry.output_cost_per_token === undefined) return null
   return {
@@ -75,55 +65,29 @@ function parseLiteLLMEntry(entry: LiteLLMEntry): ModelCosts | null {
   }
 }
 
-async function fetchAndCachePricing(): Promise<Map<string, ModelCosts>> {
-  const response = await fetch(LITELLM_URL)
-  if (!response.ok) throw new Error(`HTTP ${response.status}`)
-  const data = await response.json() as Record<string, LiteLLMEntry>
+function loadBundledPricing(): Map<string, ModelCosts> {
   const pricing = new Map<string, ModelCosts>()
-
-  for (const [name, entry] of Object.entries(data)) {
-    const costs = parseLiteLLMEntry(entry)
-    if (!costs) continue
-    pricing.set(name, costs)
-    // Also index by stripped name so lookups work without provider prefix:
-    // 'anthropic/claude-opus-4-6' is also queryable as 'claude-opus-4-6'.
-    // First write wins so direct-provider entries take precedence over re-hosters.
-    const stripped = name.replace(/^[^/]+\//, '')
-    if (stripped !== name && !pricing.has(stripped)) pricing.set(stripped, costs)
+  try {
+    const thisDir = join(fileURLToPath(import.meta.url), '..')
+    const raw = readFileSync(join(thisDir, 'data', 'litellm-pricing.json'), 'utf-8')
+    const data = JSON.parse(raw) as Record<string, LiteLLMEntry>
+    for (const [name, entry] of Object.entries(data)) {
+      const costs = parseLiteLLMEntry(entry)
+      if (!costs) continue
+      pricing.set(name, costs)
+      const stripped = name.replace(/^[^/]+\//, '')
+      if (stripped !== name && !pricing.has(stripped)) pricing.set(stripped, costs)
+    }
+  } catch {
+    for (const [name, costs] of Object.entries(FALLBACK_PRICING)) {
+      pricing.set(name, costs)
+    }
   }
-
-  await mkdir(getCacheDir(), { recursive: true })
-  await writeFile(getCachePath(), JSON.stringify({
-    timestamp: Date.now(),
-    data: Object.fromEntries(pricing),
-  }))
-
   return pricing
 }
 
-async function loadCachedPricing(): Promise<Map<string, ModelCosts> | null> {
-  try {
-    const raw = await readFile(getCachePath(), 'utf-8')
-    const cached = JSON.parse(raw) as { timestamp: number; data: Record<string, ModelCosts> }
-    if (Date.now() - cached.timestamp > CACHE_TTL_MS) return null
-    return new Map(Object.entries(cached.data))
-  } catch {
-    return null
-  }
-}
-
 export async function loadPricing(): Promise<void> {
-  const cached = await loadCachedPricing()
-  if (cached) {
-    pricingCache = cached
-    return
-  }
-
-  try {
-    pricingCache = await fetchAndCachePricing()
-  } catch {
-    pricingCache = new Map(Object.entries(FALLBACK_PRICING))
-  }
+  pricingCache = loadBundledPricing()
 }
 
 // Known model name variants that providers emit but LiteLLM/fallback don't index under.

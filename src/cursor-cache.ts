@@ -1,4 +1,5 @@
-import { readFile, writeFile, mkdir, stat } from 'fs/promises'
+import { randomBytes } from 'crypto'
+import { readFile, mkdir, stat, open, rename, unlink, lstat } from 'fs/promises'
 import { join } from 'path'
 import { homedir } from 'os'
 
@@ -58,6 +59,26 @@ export async function writeCachedResults(dbPath: string, calls: ParsedProviderCa
       dbSizeBytes: fp.size,
       calls,
     }
-    await writeFile(getCachePath(), JSON.stringify(cache), 'utf-8')
+
+    const finalPath = getCachePath()
+    try {
+      const s = await lstat(finalPath)
+      if (s.isSymbolicLink()) return
+    } catch {}
+
+    const tempPath = `${finalPath}.${randomBytes(8).toString('hex')}.tmp`
+    const handle = await open(tempPath, 'w', 0o600)
+    try {
+      await handle.writeFile(JSON.stringify(cache), { encoding: 'utf-8' })
+      await handle.sync()
+    } finally {
+      await handle.close()
+    }
+    try {
+      await rename(tempPath, finalPath)
+    } catch (err) {
+      try { await unlink(tempPath) } catch {}
+      throw err
+    }
   } catch {}
 }
