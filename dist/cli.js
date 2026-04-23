@@ -1165,7 +1165,7 @@ import { homedir, platform, tmpdir } from "os";
 import { join } from "path";
 import { pipeline } from "stream/promises";
 import { Readable } from "stream";
-var RELEASE_API = "https://api.github.com/repos/getagentseal/codeburn/releases/latest";
+var RELEASE_API = "https://api.github.com/repos/Findigs/codeburn/releases/latest";
 var APP_BUNDLE_NAME = "CodeBurnMenubar.app";
 var ASSET_PATTERN = /^CodeBurnMenubar-.*\.zip$/;
 var APP_PROCESS_NAME = "CodeBurnMenubar";
@@ -1219,7 +1219,7 @@ async function fetchLatestReleaseAsset() {
   const zip = body.assets.find((a) => ASSET_PATTERN.test(a.name));
   if (!zip) {
     throw new Error(
-      `No ${APP_BUNDLE_NAME} zip found in release ${body.tag_name}. Check https://github.com/getagentseal/codeburn/releases.`
+      `No ${APP_BUNDLE_NAME} zip found in release ${body.tag_name}. Check https://github.com/Findigs/codeburn/releases.`
     );
   }
   const sha256Asset = body.assets.find((a) => a.name === zip.name + ".sha256");

@@ -70,7 +70,7 @@ jobs:
             Install with:
 
             ```
-            npx codeburn menubar
+            npx github:Findigs/codeburn menubar
             ```
 
             That command drops the app into `~/Applications`, clears the download

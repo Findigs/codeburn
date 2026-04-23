@@ -7,9 +7,9 @@ import { join } from 'node:path'
 import { pipeline } from 'node:stream/promises'
 import { Readable } from 'node:stream'
 
-/// Public GitHub repo that hosts signed macOS release builds. `/releases/latest` returns the
+/// GitHub repo that hosts signed macOS release builds. `/releases/latest` returns the
 /// newest tagged release; we filter its assets list for our zipped .app bundle.
-const RELEASE_API = 'https://api.github.com/repos/getagentseal/codeburn/releases/latest'
+const RELEASE_API = 'https://api.github.com/repos/Findigs/codeburn/releases/latest'
 const APP_BUNDLE_NAME = 'CodeBurnMenubar.app'
 const ASSET_PATTERN = /^CodeBurnMenubar-.*\.zip$/
 const APP_PROCESS_NAME = 'CodeBurnMenubar'
@@ -74,7 +74,7 @@ async function fetchLatestReleaseAsset(): Promise<ResolvedAsset> {
   if (!zip) {
     throw new Error(
       `No ${APP_BUNDLE_NAME} zip found in release ${body.tag_name}. ` +
-      `Check https://github.com/getagentseal/codeburn/releases.`
+      `Check https://github.com/Findigs/codeburn/releases.`
     )
   }
 

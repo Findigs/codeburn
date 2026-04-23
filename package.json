@@ -35,12 +35,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/getagentseal/codeburn.git"
+    "url": "git+https://github.com/Findigs/codeburn.git"
   },
   "bugs": {
-    "url": "https://github.com/getagentseal/codeburn/issues"
+    "url": "https://github.com/Findigs/codeburn/issues"
   },
-  "homepage": "https://github.com/getagentseal/codeburn#readme",
+  "homepage": "https://github.com/Findigs/codeburn#readme",
   "dependencies": {
     "chalk": "^5.4.1",
     "commander": "^13.1.0",

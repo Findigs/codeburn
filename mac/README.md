@@ -6,27 +6,27 @@ Native Swift + SwiftUI menubar app. The codeburn menubar surface.
 
 - macOS 14+ (Sonoma)
 - Swift 6.0+ toolchain (bundled with Xcode 16 or standalone)
-- `codeburn` CLI installed globally (`npm install -g codeburn`) or available at a path you pass via `CODEBURN_BIN`
+- `codeburn` CLI installed globally (`npm install -g github:Findigs/codeburn`) or available at a path you pass via `CODEBURN_BIN`
 
 ## Install (end users)
 
 One command:
 
 ```bash
-npx codeburn menubar
+npx github:Findigs/codeburn menubar
 ```
 
 That's it. The command downloads the latest `.app` from GitHub Releases, drops it into `~/Applications`, clears Gatekeeper quarantine, and launches it. Re-running it upgrades in place with `--force`, or just launches the existing copy otherwise.
 
-If you already have the CLI installed globally (`npm install -g codeburn`), `codeburn menubar` works the same way.
+If you already have the CLI installed globally (`npm install -g github:Findigs/codeburn`), `codeburn menubar` works the same way.
 
 ### Build from source
 
 For contributors running a local build instead of the packaged release:
 
 ```bash
-npm install -g codeburn                       # CLI the app shells out to for data
-git clone https://github.com/getagentseal/codeburn.git
+npm install -g github:Findigs/codeburn        # CLI the app shells out to for data
+git clone https://github.com/Findigs/codeburn.git
 cd codeburn/mac
 swift build -c release
 .build/release/CodeBurnMenubar                # launch
