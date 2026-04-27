@@ -53,7 +53,6 @@ struct MenuBarContent: View {
 
             FooterBar()
 
-            StarBanner()
         }
     }
 
@@ -257,61 +256,6 @@ struct FlameMark: View {
     }
 }
 
-private let starBannerGitHubURL = URL(string: "https://github.com/Findigs/codeburn")!
-
-/// Shown at the very bottom on first launch. A small terracotta strip nudges users to star the
-/// repo; clicking opens GitHub, clicking the close icon hides it forever (persisted to
-/// UserDefaults so it never returns across launches).
-struct StarBanner: View {
-    @AppStorage("codeburn.starBannerDismissed") private var dismissed: Bool = false
-
-    var body: some View {
-        if !dismissed {
-            HStack(spacing: 8) {
-                Image(systemName: "star.fill")
-                    .font(.system(size: 10, weight: .semibold))
-                    .foregroundStyle(Theme.brandAccent)
-
-                Button {
-                    NSWorkspace.shared.open(starBannerGitHubURL)
-                } label: {
-                    HStack(spacing: 4) {
-                        Text("Enjoying CodeBurn?")
-                            .foregroundStyle(.primary)
-                        Text("Star us on GitHub")
-                            .foregroundStyle(Theme.brandAccent)
-                            .underline(true, pattern: .solid)
-                    }
-                    .font(.system(size: 10.5, weight: .medium))
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-
-                Spacer()
-
-                Button {
-                    dismissed = true
-                } label: {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 9, weight: .semibold))
-                        .foregroundStyle(.secondary)
-                        .padding(4)
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .help("Hide this banner")
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 6)
-            .background(Theme.brandAccent.opacity(0.08))
-            .overlay(alignment: .top) {
-                Rectangle()
-                    .fill(Color.secondary.opacity(0.18))
-                    .frame(height: 0.5)
-            }
-        }
-    }
-}
 
 struct FooterBar: View {
     @Environment(AppStore.self) private var store
