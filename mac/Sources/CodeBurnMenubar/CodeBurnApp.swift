@@ -27,7 +27,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     private var statusItem: NSStatusItem!
     private var popover: NSPopover!
     private let store = AppStore()
-    let updateChecker = UpdateChecker()
     private var refreshTask: Task<Void, Never>?
     /// Held for the lifetime of the app to opt out of App Nap and Automatic Termination.
     /// Without this the 15s refresh Task gets suspended whenever the user is interacting with
@@ -50,7 +49,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         setupPopover()
         observeStore()
         startRefreshLoop()
-        Task { await updateChecker.checkIfNeeded() }
     }
 
     /// Loads the currency code persisted by `codeburn currency` so a relaunch picks up where
@@ -191,7 +189,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
 
         let content = MenuBarContent()
             .environment(store)
-            .environment(updateChecker)
             .frame(width: popoverWidth)
 
         popover.contentViewController = NSHostingController(rootView: content)
