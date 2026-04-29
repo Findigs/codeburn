@@ -8,6 +8,24 @@ CodeBurn is a CLI + TUI tool that shows where AI coding tokens go — by task, t
 
 ## Commands
 
+A justfile provides the main workflows:
+
+```bash
+just install           # install CLI globally + menubar app
+just cli-install       # CLI only (clone → build → global install)
+just cli-update        # update CLI to latest main
+just cli-build         # build CLI from local source (tsup → dist/cli.js)
+just cli-dev [ARGS]    # run CLI from local source without building (tsx)
+just menubar-install   # menubar app from latest GitHub release
+just menubar-install-local  # menubar app built from local source
+just menubar-dev       # build + launch menubar pointed at local CLI
+just clean             # remove both CLI and menubar app
+just test              # vitest (single run)
+just test-swift        # swift test
+```
+
+Direct npm scripts still work for development:
+
 ```bash
 npm run build          # tsup → dist/cli.js (ESM, node20 target)
 npm run dev            # tsx src/cli.ts (run CLI without building)
@@ -28,7 +46,7 @@ swift build -c release # release build
 swift test             # run Swift tests
 ```
 
-Requires macOS 14+ / Swift 6.0+. The app shells out to the `codeburn` CLI for data (`codeburn status --format menubar-json`).
+Requires macOS 14+ / Swift 6.0+. The app shells out to the `codeburn` CLI for data (`codeburn status --format menubar-json`). The menubar refresh loop prioritizes the user-visible view, then quietly refreshes the today badge — skipping the second CLI call when they overlap.
 
 ## Architecture
 
@@ -70,7 +88,7 @@ The Semgrep CI rule enforces: in `src/providers/*.ts` and `src/parser.ts`, never
 
 ## Workflow
 
-Push directly to `main` — no PRs for now.
+This is a private fork of [getagentseal/codeburn](https://github.com/getagentseal/codeburn). Development happens straight to `main` without PRs for now. Push directly to `main`.
 
 ### TypeScript conventions
 
