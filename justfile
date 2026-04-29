@@ -1,16 +1,23 @@
 # CodeBurn — CLI + macOS menubar app
 
-repo := "github:Findigs/codeburn"
-
 # ─── CLI ──────────────────────────────────────────────
 
-# Install CLI globally from the fork
+# Install CLI globally from the fork (clone → build → link)
 cli-install:
-    npm install -g git+https://github.com/Findigs/codeburn.git
+    #!/usr/bin/env bash
+    set -euo pipefail
+    tmp=$(mktemp -d)
+    trap 'rm -rf "$tmp"' EXIT
+    git clone --depth 1 https://github.com/Findigs/codeburn.git "$tmp/codeburn"
+    cd "$tmp/codeburn"
+    npm install --ignore-scripts
+    npx --no-install tsup
+    npm install -g . --ignore-scripts
 
 # Update CLI to latest main
 cli-update:
-    npm uninstall -g codeburn && npm install -g git+https://github.com/Findigs/codeburn.git
+    -npm uninstall -g codeburn
+    just cli-install
 
 # Remove globally installed CLI
 cli-clean:
