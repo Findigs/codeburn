@@ -34,17 +34,21 @@ menubar-build:
 menubar-dev: cli-build
     cd mac && swift build && CODEBURN_BIN="node {{justfile_directory()}}/dist/cli.js" swift run
 
-# Install menubar app to ~/Applications
-menubar-install: menubar-build
-    mkdir -p ~/Applications
-    rm -rf ~/Applications/CodeBurnMenubar.app
-    cp -R mac/.build/release/CodeBurnMenubar.app ~/Applications/
-    xattr -dr com.apple.quarantine ~/Applications/CodeBurnMenubar.app
-    open ~/Applications/CodeBurnMenubar.app
+# Install menubar app from latest GitHub release
+menubar-install:
+    codeburn menubar --force
 
-# Remove menubar app from ~/Applications
+# Install menubar app from local source build
+menubar-install-local: menubar-build
+    -pkill -x CodeBurnMenubar
+    mkdir -p ~/bin
+    cp mac/.build/release/CodeBurnMenubar ~/bin/
+    ~/bin/CodeBurnMenubar &
+
+# Remove menubar app
 menubar-clean:
     -pkill -x CodeBurnMenubar
+    rm -f ~/bin/CodeBurnMenubar
     rm -rf ~/Applications/CodeBurnMenubar.app
 
 # ─── All ─────────────────────────────────────────────
@@ -52,7 +56,7 @@ menubar-clean:
 # Install both CLI and menubar app
 install: cli-install menubar-install
 
-# Update CLI and rebuild menubar app
+# Update both CLI and menubar app
 update: cli-update menubar-install
 
 # Remove CLI and menubar app
