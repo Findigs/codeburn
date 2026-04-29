@@ -23,19 +23,28 @@ Works by reading session data directly from disk. No wrapper, no proxy, no API k
 
 ## Install
 
+Requires [just](https://github.com/casey/just) and Node.js 22+.
+
 ```bash
-npm install -g --install-links github:Findigs/codeburn
+git clone https://github.com/Findigs/codeburn.git
+cd codeburn
+just install        # installs CLI globally + macOS menubar app
 ```
 
-Or run without installing:
+Individual recipes:
 
 ```bash
-npx github:Findigs/codeburn
+just cli-install            # CLI only (clone → build → global install)
+just cli-update             # update CLI to latest main
+just menubar-install        # menubar app from latest GitHub release
+just menubar-install-local  # menubar app built from local source
+just clean                  # remove both CLI and menubar app
 ```
 
 ### Requirements
 
-- Node.js 20+
+- Node.js 22+
+- macOS 14+ for the menubar app (Swift 6.0+)
 - Claude Code (`~/.claude/projects/`), Codex (`~/.codex/sessions/`), Cursor, OpenCode, Pi (`~/.pi/agent/sessions/`), OMP (`~/.omp/agent/sessions/`), and/or GitHub Copilot (`~/.copilot/session-state/`)
 - For Cursor/OpenCode support: `better-sqlite3` is installed automatically as an optional dependency
 
@@ -206,10 +215,11 @@ The progress bar shows API-equivalent cost vs subscription price. Presets use pu
 <img src="https://cdn.jsdelivr.net/gh/getagentseal/codeburn@main/assets/menubar-0.8.0.png" alt="CodeBurn macOS menubar app" width="420" />
 
 ```bash
-npx github:Findigs/codeburn menubar
+just menubar-install        # from latest GitHub release
+just menubar-install-local  # build from local source
 ```
 
-One command: downloads the latest `.app`, installs into `~/Applications`, and launches it. Re-run with `--force` to reinstall. Native Swift + SwiftUI app lives in `mac/` (see `mac/README.md` for build details). Shows today's cost with a flame icon, opens a popover with agent tabs, period switcher (Today / 7 Days / 30 Days / Month / All), Trend / Forecast / Pulse / Stats / Plan insights, activity and model breakdowns, optimize findings, and CSV/JSON export. Refreshes live via FSEvents plus a 15-second poll.
+Native Swift + SwiftUI app (see `mac/README.md` for build details). Shows today's cost with a flame icon, opens a popover with agent tabs, period switcher (Today / 7 Days / 30 Days / Month / All), Trend / Forecast / Pulse / Stats / Plan insights, activity and model breakdowns, optimize findings, and CSV/JSON export. Refreshes live via FSEvents plus a 15-second poll.
 
 **Compact mode** shrinks the menubar item to fit the text, dropping decimals (e.g. `$110` instead of `$110.20`). Opt in with:
 
@@ -371,22 +381,10 @@ src/
     pi.ts         Pi/OMP agent JSONL session discovery and parsing
 ```
 
-## Star History
-
-<a href="https://www.star-history.com/?repos=getagentseal%2Fcodeburn&type=date&legend=top-left">
- <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=getagentseal/codeburn&type=date&theme=dark&legend=top-left" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=getagentseal/codeburn&type=date&legend=top-left" />
-   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=getagentseal/codeburn&type=date&legend=top-left" />
- </picture>
-</a>
-
 ## License
 
 MIT
 
 ## Credits
 
-Inspired by [ccusage](https://github.com/ryoppippi/ccusage) and [CodexBar](https://github.com/nicklama/codexbar). Pricing data from [LiteLLM](https://github.com/BerriAI/litellm). Exchange rates from [Frankfurter](https://www.frankfurter.app/).
-
-Built by [AgentSeal](https://agentseal.org).
+Forked from [getagentseal/codeburn](https://github.com/getagentseal/codeburn). Pricing data from [LiteLLM](https://github.com/BerriAI/litellm). Exchange rates from [Frankfurter](https://www.frankfurter.app/).
