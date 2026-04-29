@@ -196,6 +196,15 @@ private struct Header: View {
                     .foregroundStyle(.secondary)
             }
             Spacer()
+
+            Button {
+                NSApp.terminate(nil)
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(.secondary)
+            }
+            .buttonStyle(.plain)
         }
         .padding(.horizontal, 14)
         .padding(.top, 10)
