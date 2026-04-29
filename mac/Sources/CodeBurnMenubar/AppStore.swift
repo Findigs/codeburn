@@ -92,10 +92,17 @@ final class AppStore {
     /// Background refresh for a period other than the visible one (e.g. keeping today fresh for the menubar badge).
     /// Does not toggle isLoading, so the popover's loading overlay is unaffected.
     /// Always uses the .all provider since the menubar badge shows total spend.
+    /// Skips if the cache entry is still fresh (avoids a redundant CLI call when the visible
+    /// view already fetched this key in the same cycle) or if a fetch is already in-flight.
     func refreshQuietly(period: Period) async {
+        let key = PayloadCacheKey(period: period, provider: .all)
+        if let cached = cache[key], cached.isFresh { return }
+        guard !inFlightKeys.contains(key) else { return }
+        inFlightKeys.insert(key)
+        defer { inFlightKeys.remove(key) }
         do {
             let fresh = try await DataClient.fetch(period: period, provider: .all, includeOptimize: true)
-            cache[PayloadCacheKey(period: period, provider: .all)] = CachedPayload(payload: fresh, fetchedAt: Date())
+            cache[key] = CachedPayload(payload: fresh, fetchedAt: Date())
         } catch {
             NSLog("CodeBurn: quiet refresh failed for \(period.rawValue): \(error)")
         }

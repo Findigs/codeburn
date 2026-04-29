@@ -419,18 +419,19 @@ program
       let currentData: PeriodData
       let scanProjects: ProjectSummary[]
       let scanRange: DateRange
+      // Parsed once, reused for current-period, provider breakdown, and daily history.
+      const todayRange: DateRange = { start: todayStart, end: now }
+      const todayProjects = isAllProviders ? fp(await parseAllSessions(todayRange, 'all')) : undefined
+      const todayDays = todayProjects ? aggregateProjectsIntoDays(todayProjects) : undefined
 
       if (isAllProviders) {
-        const todayRange: DateRange = { start: todayStart, end: now }
-        const todayProjects = fp(await parseAllSessions(todayRange, 'all'))
-        const todayDays = aggregateProjectsIntoDays(todayProjects)
         const rangeStartStr = toDateString(periodInfo.range.start)
         const rangeEndStr = toDateString(periodInfo.range.end)
         const historicalDays = getDaysInRange(cache, rangeStartStr, yesterdayStr)
-        const todayInRange = todayDays.filter(d => d.date >= rangeStartStr && d.date <= rangeEndStr)
+        const todayInRange = todayDays!.filter(d => d.date >= rangeStartStr && d.date <= rangeEndStr)
         const allDays = [...historicalDays, ...todayInRange].sort((a, b) => a.date.localeCompare(b.date))
         currentData = buildPeriodDataFromDays(allDays, periodInfo.label)
-        scanProjects = todayProjects
+        scanProjects = todayProjects!
         scanRange = todayRange
       } else {
         const projects = fp(await parseAllSessions(periodInfo.range, pf))
@@ -446,12 +447,10 @@ program
       const displayNameByName = new Map(allProviders.map(p => [p.name, p.displayName]))
       const providers: ProviderCost[] = []
       if (isAllProviders) {
-        const todayRangeForProviders: DateRange = { start: todayStart, end: now }
-        const todayDaysForProviders = aggregateProjectsIntoDays(fp(await parseAllSessions(todayRangeForProviders, 'all')))
         const rangeStartStr = toDateString(periodInfo.range.start)
         const allDaysForProviders = [
           ...getDaysInRange(cache, rangeStartStr, yesterdayStr),
-          ...todayDaysForProviders.filter(d => d.date >= rangeStartStr),
+          ...todayDays!.filter(d => d.date >= rangeStartStr),
         ]
         const providerTotals: Record<string, number> = {}
         for (const d of allDaysForProviders) {
@@ -478,8 +477,8 @@ program
       // in the cache, so the filtered view shows zero tokens (heatmap/trend still works on cost).
       const historyStartStr = toDateString(new Date(todayStart.getTime() - BACKFILL_DAYS * MS_PER_DAY))
       const allCacheDays = getDaysInRange(cache, historyStartStr, yesterdayStr)
-      const allTodayDaysForHistory = aggregateProjectsIntoDays(fp(await parseAllSessions({ start: todayStart, end: now }, 'all')))
-      const fullHistory = [...allCacheDays, ...allTodayDaysForHistory]
+      const todayDaysForHistory = todayDays ?? aggregateProjectsIntoDays(fp(await parseAllSessions(todayRange, 'all')))
+      const fullHistory = [...allCacheDays, ...todayDaysForHistory]
       const dailyHistory = fullHistory.map(d => {
         if (isAllProviders) {
           const topModels = Object.entries(d.models)

@@ -89,9 +89,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
             while !Task.isCancelled {
                 try? await Task.sleep(nanoseconds: refreshIntervalNanos)
                 guard let s = self else { return }
-                await s.store.refreshQuietly(period: .today)
-                s.refreshStatusButton()
+                // User-visible data first; refreshQuietly then skips if the badge
+                // key was already covered (e.g. when viewing Today / All).
                 await s.store.refresh(includeOptimize: true)
+                s.refreshStatusButton()
+                await s.store.refreshQuietly(period: .today)
                 s.refreshStatusButton()
             }
         }
