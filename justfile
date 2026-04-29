@@ -2,7 +2,7 @@
 
 # ─── CLI ──────────────────────────────────────────────
 
-# Install CLI globally from the fork (clone → build → link)
+# Install CLI globally from the fork (clone → build → pack → install)
 cli-install:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -12,7 +12,8 @@ cli-install:
     cd "$tmp/codeburn"
     npm install --ignore-scripts
     npx --no-install tsup
-    npm install -g . --ignore-scripts
+    npm pack --ignore-scripts
+    npm install -g codeburn-*.tgz
 
 # Update CLI to latest main
 cli-update:
