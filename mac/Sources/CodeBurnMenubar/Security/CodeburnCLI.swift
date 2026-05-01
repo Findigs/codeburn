@@ -10,9 +10,38 @@ enum CodeburnCLI {
     /// newlines) so a malicious `CODEBURN_BIN="codeburn; rm -rf ~"` can't slip through.
     private static let safeArgPattern = try! NSRegularExpression(pattern: "^[A-Za-z0-9 ._/\\-]+$")
 
-    /// PATH additions for GUI-launched apps, which otherwise get a minimal PATH that misses
-    /// Homebrew and npm global installs.
-    private static let additionalPathEntries = ["/opt/homebrew/bin", "/usr/local/bin"]
+    private static let additionalPathEntries: [String] = {
+        var entries = ["/opt/homebrew/bin", "/usr/local/bin"]
+        let home = NSHomeDirectory()
+
+        // nvm: resolve the default alias to find the active node version's bin directory.
+        let nvmDir = (ProcessInfo.processInfo.environment["NVM_DIR"] as String?) ?? home + "/.nvm"
+        if let alias = try? String(contentsOfFile: nvmDir + "/alias/default", encoding: .utf8)
+            .trimmingCharacters(in: .whitespacesAndNewlines),
+           !alias.isEmpty {
+            let prefix = alias.hasPrefix("v") ? alias : "v" + alias
+            let versionsDir = nvmDir + "/versions/node"
+            if let candidates = try? FileManager.default.contentsOfDirectory(atPath: versionsDir) {
+                let match = candidates
+                    .filter { $0.hasPrefix(prefix) }
+                    .sorted()
+                    .last
+                if let match {
+                    entries.append(versionsDir + "/" + match + "/bin")
+                }
+            }
+        }
+
+        // volta
+        let voltaBin = home + "/.volta/bin"
+        if FileManager.default.fileExists(atPath: voltaBin) { entries.append(voltaBin) }
+
+        // fnm
+        let fnmBin = home + "/.local/share/fnm/aliases/default/bin"
+        if FileManager.default.fileExists(atPath: fnmBin) { entries.append(fnmBin) }
+
+        return entries
+    }()
 
     /// Returns the argv that launches the CLI. Dev override via `CODEBURN_BIN` is honoured only
     /// if every whitespace-delimited token passes `safeArgPattern`. Otherwise falls back to the
