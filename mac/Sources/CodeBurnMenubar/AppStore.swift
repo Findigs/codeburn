@@ -64,48 +64,73 @@ final class AppStore {
         await refresh(includeOptimize: true)
     }
 
-    private var inFlightKeys: Set<PayloadCacheKey> = []
+    /// Tracks the actual Task per key (not just a flag) so that concurrent callers can `await`
+    /// the in-flight fetch instead of being silently dropped. Previously a Set<PayloadCacheKey>
+    /// was used as a "skip if duplicate" guard, which made the refresh button a no-op whenever
+    /// the auto-refresh loop happened to be mid-fetch -- the user clicked, nothing happened.
+    private var inFlightTasks: [PayloadCacheKey: Task<Void, Never>] = [:]
 
-    /// Refresh the currently selected (period, provider) combination. Guards against concurrent
-    /// fetches for the same key so a slow initial request can't overwrite a newer one that
-    /// finished first (which would show stale numbers the user has already moved past).
+    private static let badgeKey = PayloadCacheKey(period: .today, provider: .all)
+
+    /// Refresh the currently selected (period, provider) combination. If a fetch is already
+    /// in flight for this key, awaits its completion (so user-initiated refreshes always
+    /// yield fresh data) instead of silently dropping the request.
     func refresh(includeOptimize: Bool) async {
-        let key = currentKey
-        guard !inFlightKeys.contains(key) else { return }
-        inFlightKeys.insert(key)
-        let showLoading = cache[key] == nil
-        if showLoading { isLoading = true }
-        defer {
-            inFlightKeys.remove(key)
-            if showLoading { isLoading = false }
-        }
-        do {
-            let fresh = try await DataClient.fetch(period: key.period, provider: key.provider, includeOptimize: includeOptimize)
-            cache[key] = CachedPayload(payload: fresh, fetchedAt: Date())
-            lastError = nil
-        } catch {
-            lastError = String(describing: error)
-            NSLog("CodeBurn: fetch failed for \(key.period.rawValue)/\(key.provider.rawValue): \(error)")
-        }
+        await fetch(key: currentKey, includeOptimize: includeOptimize, showLoading: true)
     }
 
     /// Background refresh for a period other than the visible one (e.g. keeping today fresh for the menubar badge).
     /// Does not toggle isLoading, so the popover's loading overlay is unaffected.
     /// Always uses the .all provider since the menubar badge shows total spend.
-    /// Skips if the cache entry is still fresh (avoids a redundant CLI call when the visible
-    /// view already fetched this key in the same cycle) or if a fetch is already in-flight.
-    func refreshQuietly(period: Period) async {
+    /// Skips if the cache entry is still fresh, unless `force` is true (used by the manual
+    /// refresh button to guarantee fresh badge data even when the visible period is something else).
+    func refreshQuietly(period: Period, force: Bool = false) async {
         let key = PayloadCacheKey(period: period, provider: .all)
-        if let cached = cache[key], cached.isFresh { return }
-        guard !inFlightKeys.contains(key) else { return }
-        inFlightKeys.insert(key)
-        defer { inFlightKeys.remove(key) }
-        do {
-            let fresh = try await DataClient.fetch(period: period, provider: .all, includeOptimize: true)
-            cache[key] = CachedPayload(payload: fresh, fetchedAt: Date())
-        } catch {
-            NSLog("CodeBurn: quiet refresh failed for \(period.rawValue): \(error)")
+        if !force, let cached = cache[key], cached.isFresh { return }
+        await fetch(key: key, includeOptimize: true, showLoading: false)
+    }
+
+    /// User-initiated refresh from the popover footer. Refreshes the visible period AND the
+    /// (.today, .all) key that backs the menubar badge -- otherwise clicking refresh while
+    /// viewing 7 Days / 30 Days / etc. would never update the dollar amount in the menubar.
+    /// `force: true` bypasses the freshness window so the badge always re-fetches.
+    func userRefresh() async {
+        let visibleKey = currentKey
+        if visibleKey == AppStore.badgeKey {
+            await refresh(includeOptimize: true)
+            return
         }
+        async let v: Void = refresh(includeOptimize: true)
+        async let b: Void = refreshQuietly(period: .today, force: true)
+        _ = await (v, b)
+    }
+
+    /// Single-flight fetch for a given key. If a fetch is already running for this key,
+    /// concurrent callers await the existing task; only the originator clears the slot.
+    /// `showLoading` toggles the popover's full-screen loading overlay (only on first
+    /// fetch for a key, where the user has nothing to look at yet).
+    private func fetch(key: PayloadCacheKey, includeOptimize: Bool, showLoading: Bool) async {
+        if let existing = inFlightTasks[key] {
+            await existing.value
+            return
+        }
+        let toggleLoading = showLoading && cache[key] == nil
+        if toggleLoading { isLoading = true }
+        let task = Task { @MainActor [weak self] in
+            guard let self else { return }
+            do {
+                let fresh = try await DataClient.fetch(period: key.period, provider: key.provider, includeOptimize: includeOptimize)
+                self.cache[key] = CachedPayload(payload: fresh, fetchedAt: Date())
+                self.lastError = nil
+            } catch {
+                self.lastError = String(describing: error)
+                NSLog("CodeBurn: fetch failed for \(key.period.rawValue)/\(key.provider.rawValue): \(error)")
+            }
+        }
+        inFlightTasks[key] = task
+        await task.value
+        inFlightTasks[key] = nil
+        if toggleLoading { isLoading = false }
     }
 
     /// Fetch Claude subscription usage. Sets subscription = nil on missing creds (API users / unauthenticated).
