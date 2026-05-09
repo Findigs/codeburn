@@ -259,6 +259,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
             }
             while !Task.isCancelled {
                 guard let self else { return }
+                self.store.clearStaleLoadingIfNeeded()
                 // Skip the loop's tick if a wake / manual / distributed-
                 // notification refresh just ran. Without this gate, every
                 // wake produced two refreshes (forceRefresh from the wake

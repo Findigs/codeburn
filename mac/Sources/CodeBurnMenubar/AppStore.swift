@@ -27,6 +27,7 @@ final class AppStore {
     var currency: String = "USD"
     var isLoading: Bool { loadingCount > 0 }
     private var loadingCount: Int = 0
+    private var loadingStartedAt: Date?
     var lastError: String?
     var subscription: SubscriptionUsage?
     var subscriptionError: String?
@@ -131,7 +132,19 @@ final class AppStore {
 
     func resetLoadingState() {
         loadingCount = 0
+        loadingStartedAt = nil
         inFlightKeys.removeAll()
+    }
+
+    private let loadingWatchdogSeconds: TimeInterval = 60
+
+    @discardableResult
+    func clearStaleLoadingIfNeeded() -> Bool {
+        guard isLoading, let started = loadingStartedAt,
+              Date().timeIntervalSince(started) > loadingWatchdogSeconds else { return false }
+        NSLog("CodeBurn: loading stuck for %ds — auto-clearing", Int(Date().timeIntervalSince(started)))
+        resetLoadingState()
+        return true
     }
 
     private func invalidateStaleDayCache() {
@@ -157,6 +170,7 @@ final class AppStore {
         inFlightKeys.insert(key)
         let didShowLoading = showLoading || cache[key] == nil
         if didShowLoading {
+            if loadingCount == 0 { loadingStartedAt = Date() }
             loadingCount += 1
         }
         // Diagnostic anchor: if this key has been empty for a long time (the
@@ -172,7 +186,10 @@ final class AppStore {
         }
         defer {
             inFlightKeys.remove(key)
-            if didShowLoading { loadingCount = max(loadingCount - 1, 0) }
+            if didShowLoading {
+                loadingCount = max(loadingCount - 1, 0)
+                if loadingCount == 0 { loadingStartedAt = nil }
+            }
         }
         do {
             let fresh = try await DataClient.fetch(period: key.period, provider: key.provider, includeOptimize: includeOptimize)
