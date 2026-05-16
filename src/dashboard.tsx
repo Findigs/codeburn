@@ -55,6 +55,7 @@ const PROVIDER_COLORS: Record<string, string> = {
   'ibm-bob': '#0F62FE',
   opencode: '#A78BFA',
   pi: '#F472B6',
+  kimi: '#B6E34A',
   all: '#FF8C42',
 }
 
@@ -528,6 +529,7 @@ const PROVIDER_DISPLAY_NAMES: Record<string, string> = {
   'ibm-bob': 'IBM Bob',
   opencode: 'OpenCode',
   pi: 'Pi',
+  kimi: 'Kimi',
 }
 function getProviderDisplayName(name: string): string { return PROVIDER_DISPLAY_NAMES[name] ?? name }
 

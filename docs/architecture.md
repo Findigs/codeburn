@@ -128,9 +128,9 @@ type Provider = {
 }
 ```
 
-`src/providers/index.ts` registers twenty providers across two tiers:
+`src/providers/index.ts` registers twenty-one providers across two tiers:
 
-- **Eager**: `claude`, `cline`, `codex`, `copilot`, `droid`, `gemini`, `ibm-bob`, `kilo-code`, `kiro`, `openclaw`, `pi`, `omp`, `qwen`, `roo-code`. Imported at module load.
+- **Eager**: `claude`, `cline`, `codex`, `copilot`, `droid`, `gemini`, `ibm-bob`, `kilo-code`, `kiro`, `kimi`, `openclaw`, `pi`, `omp`, `qwen`, `roo-code`. Imported at module load.
 - **Lazy**: `antigravity`, `goose`, `cursor`, `opencode`, `cursor-agent`, `crush`. Imported via dynamic `import()` so the heavy dependencies (SQLite, protobuf) do not touch users who do not have those tools installed.
 
 Both lists hit the same `getAllProviders()` aggregator. A failed lazy import is silent and excludes that provider from the run.
