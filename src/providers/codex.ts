@@ -7,6 +7,7 @@ import { homedir } from 'os'
 import { readSessionLines } from '../fs-utils.js'
 import { calculateCost } from '../models.js'
 import { readCachedCodexResults, writeCachedCodexResults, getCachedCodexProject, fingerprintFile } from '../codex-cache.js'
+import type { ToolCall } from '../types.js'
 import type { Provider, SessionSource, SessionParser, ParsedProviderCall } from './types.js'
 
 const modelDisplayNames: Record<string, string> = {
@@ -331,9 +332,12 @@ function createParser(source: SessionSource, seenKeys: Set<string>): SessionPars
       let prevOutput = 0
       let prevReasoning = 0
       let pendingTools: string[] = []
+      let pendingToolSequence: ToolCall[][] = []
       let pendingUserMessage = ''
       let pendingOutputChars = 0
       let estCounter = 0
+      let turnCounter = 0
+      let currentTurnId = `${sessionId}:t0`
       let sawAnyLine = false
       const results: ParsedProviderCall[] = []
 
@@ -364,12 +368,35 @@ function createParser(source: SessionSource, seenKeys: Set<string>): SessionPars
 
         if (entry.type === 'response_item' && entry.payload?.type === 'function_call') {
           const rawName = entry.payload.name ?? ''
-          pendingTools.push(toolNameMap[rawName] ?? rawName)
+          const mapped = toolNameMap[rawName] ?? rawName
+          pendingTools.push(mapped)
+          const call: ToolCall = { tool: mapped }
+          const rawArgs = (entry.payload as Record<string, unknown>)['arguments']
+          const args = typeof rawArgs === 'string'
+            ? (() => { try { return JSON.parse(rawArgs) as Record<string, unknown> } catch { return null } })()
+            : typeof rawArgs === 'object' && rawArgs ? rawArgs as Record<string, unknown> : null
+          if (args) {
+            const fp = args['file_path'] ?? args['path']
+            if (typeof fp === 'string') call.file = fp
+            const cmd = args['command'] ?? args['cmd']
+            if (typeof cmd === 'string') call.command = cmd
+          }
+          pendingToolSequence.push([call])
           continue
         }
 
         if (entry.type === 'event_msg' && entry.payload?.type === 'patch_apply_end') {
           pendingTools.push('Edit')
+          const p = entry.payload as Record<string, unknown>
+          const changes = p['changes']
+          const filePaths = typeof changes === 'object' && changes ? Object.keys(changes as object) : []
+          if (filePaths.length > 0) {
+            for (const fp of filePaths) {
+              pendingToolSequence.push([{ tool: 'Edit', file: fp }])
+            }
+          } else {
+            pendingToolSequence.push([{ tool: 'Edit' }])
+          }
           continue
         }
 
@@ -378,7 +405,10 @@ function createParser(source: SessionSource, seenKeys: Set<string>): SessionPars
             .filter(c => c.type === 'input_text')
             .map(c => c.text ?? '')
             .filter(Boolean)
-          if (texts.length > 0) pendingUserMessage = texts.join(' ').slice(0, 500)
+          if (texts.length > 0) {
+            pendingUserMessage = texts.join(' ').slice(0, 500)
+            currentTurnId = `${sessionId}:t${++turnCounter}`
+          }
           continue
         }
 
@@ -406,7 +436,7 @@ function createParser(source: SessionSource, seenKeys: Set<string>): SessionPars
             const timestamp = entry.timestamp ?? ''
             const dedupKey = `codex:${sessionId}:${timestamp}:est${estCounter++}`
 
-            if (seenKeys.has(dedupKey)) { pendingTools = []; pendingUserMessage = ''; pendingOutputChars = 0; continue }
+            if (seenKeys.has(dedupKey)) { pendingTools = []; pendingToolSequence = []; pendingUserMessage = ''; pendingOutputChars = 0; continue }
             seenKeys.add(dedupKey)
 
             const costUSD = calculateCost(model, estInput, estOutput, 0, 0, 0)
@@ -428,11 +458,14 @@ function createParser(source: SessionSource, seenKeys: Set<string>): SessionPars
               timestamp,
               speed: 'standard',
               deduplicationKey: dedupKey,
+              turnId: currentTurnId,
+              toolSequence: pendingToolSequence.length > 0 ? pendingToolSequence : undefined,
               userMessage: pendingUserMessage,
               sessionId,
             })
 
             pendingTools = []
+            pendingToolSequence = []
             pendingUserMessage = ''
             pendingOutputChars = 0
             continue
@@ -521,11 +554,14 @@ function createParser(source: SessionSource, seenKeys: Set<string>): SessionPars
             timestamp,
             speed: 'standard',
             deduplicationKey: dedupKey,
+            turnId: currentTurnId,
+            toolSequence: pendingToolSequence.length > 0 ? pendingToolSequence : undefined,
             userMessage: pendingUserMessage,
             sessionId,
           })
 
           pendingTools = []
+          pendingToolSequence = []
           pendingUserMessage = ''
           pendingOutputChars = 0
         }
