@@ -32,6 +32,11 @@
   not forwarding the `toolSequence` field, so all cached Claude sessions lost
   their tool ordering data.
 
+### Added (macOS menubar)
+- **Configurable menubar status period.** The menubar dropdown now lets you
+  choose which period (Today, 7 Days, Month, All Time) is shown in the status
+  bar. Persisted via UserDefaults. Thanks @ozymandiashh. (#302)
+
 ## 0.9.10 - 2026-05-20
 
 ### Added (CLI)

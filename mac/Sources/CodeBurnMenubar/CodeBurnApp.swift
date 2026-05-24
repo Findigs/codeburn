@@ -361,7 +361,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     private func clearStaleStatusPayloadRefreshIfNeeded(now: Date = Date()) -> Bool {
         if statusPayloadRefreshTask != nil {
             guard let started = statusPayloadRefreshStartedAt else {
-                NSLog("CodeBurn: today status refresh task had no start timestamp - clearing")
+                NSLog("CodeBurn: status refresh task had no start timestamp - clearing")
                 statusPayloadRefreshTask?.cancel()
                 statusPayloadRefreshTask = nil
                 statusPayloadRefreshGeneration &+= 1
@@ -369,7 +369,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
             }
             let elapsed = now.timeIntervalSince(started)
             guard elapsed > statusPayloadRefreshWatchdogSeconds else { return false }
-            NSLog("CodeBurn: today status refresh stuck for %ds - cancelling", Int(elapsed))
+            NSLog("CodeBurn: status refresh stuck for %ds - cancelling", Int(elapsed))
             statusPayloadRefreshTask?.cancel()
             statusPayloadRefreshTask = nil
             statusPayloadRefreshStartedAt = nil
@@ -379,14 +379,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         return false
     }
 
-    private func refreshTodayStatusPayloadIfNeeded(reason: String, force: Bool = false) {
+    private func refreshStatusPayloadIfNeeded(reason: String, force: Bool = false) {
         let now = Date()
         _ = clearStaleStatusPayloadRefreshIfNeeded(now: now)
         guard statusPayloadRefreshTask == nil else { return }
         guard force || store.needsStatusPayloadRefresh else { return }
 
-        if let age = store.todayPayloadAgeSeconds, age > 120 {
-            NSLog("CodeBurn: today status payload stale for %ds on %@ refresh", age, reason)
+        let menubarPeriod = store.menubarPeriod
+        if let age = store.menubarPayloadAgeSeconds, age > 120 {
+            NSLog("CodeBurn: status payload stale for %ds on %@ refresh", age, reason)
         }
 
         statusPayloadRefreshStartedAt = now
@@ -394,7 +395,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         let generation = statusPayloadRefreshGeneration
         statusPayloadRefreshTask = Task { [weak self] in
             guard let self else { return }
-            await self.store.refreshQuietly(period: .today, force: true)
+            await self.store.refreshQuietly(period: menubarPeriod, force: true)
             self.refreshStatusButton()
             guard self.statusPayloadRefreshGeneration == generation, !Task.isCancelled else { return }
             self.statusPayloadRefreshTask = nil
@@ -407,7 +408,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         _ = clearStaleForceRefreshIfNeeded(now: now)
         guard !isForceRefreshPaused(now: now) else { return }
         if forceRefreshTask != nil {
-            refreshTodayStatusPayloadIfNeeded(reason: "blocked force refresh")
+            refreshStatusPayloadIfNeeded(reason: "blocked force refresh")
         }
         guard forceRefreshTask == nil else { return }
         if !bypassRateLimit {
@@ -419,11 +420,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         let generation = forceRefreshGeneration
 
         forceRefreshTask = Task {
-            async let main: Void = store.refresh(includeOptimize: false, force: true, showLoading: true)
+            async let main: Void = refreshUsagePayloads(force: true, showLoading: true)
             async let quotas: Bool = refreshLiveQuotaProgressIfDue(force: forceQuota)
-            if store.selectedPeriod != .today || store.selectedProvider != .all {
-                await store.refreshQuietly(period: .today)
-            }
             _ = await main
             refreshStatusButton()
             _ = await quotas
@@ -436,6 +434,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
                 self.lastRefreshTime = Date()
             }
         }
+    }
+
+    private func refreshUsagePayloads(force: Bool, showLoading: Bool = false) async {
+        let menubarPeriod = store.menubarPeriod
+        let needsMenubarPayload = store.selectedPeriod != menubarPeriod || store.selectedProvider != .all
+        let needsTodayPayload = (store.selectedPeriod != .today || store.selectedProvider != .all) && menubarPeriod != .today
+
+        async let visible: Void = store.refresh(includeOptimize: false, force: force, showLoading: showLoading)
+        async let menubar: Void = needsMenubarPayload
+            ? store.refreshQuietly(period: menubarPeriod, force: force)
+            : ()
+        async let today: Void = needsTodayPayload
+            ? store.refreshQuietly(period: .today, force: force)
+            : ()
+        _ = await (visible, menubar, today)
     }
 
     /// Loads the currency code persisted by `codeburn currency` so a relaunch picks up where
@@ -580,7 +593,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
 
         let forceRefreshWasBlocked = hadForceRefreshInFlight && forceRefreshTask != nil
         if statusPayloadStale && (!shouldForceRefresh || forceRefreshWasBlocked || clearedStaleStatusRefresh) {
-            refreshTodayStatusPayloadIfNeeded(reason: reason, force: forcePayload)
+            refreshStatusPayloadIfNeeded(reason: reason, force: forcePayload)
         }
     }
 
@@ -632,12 +645,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
             // "Refresh Now" should refresh the menubar payload AND every
             // connected provider's live quota. The user's intent is "make
             // this match reality right now."
-            let needsTodayTotal = self.store.selectedPeriod != .today || self.store.selectedProvider != .all
-            async let payload: Void = self.store.refresh(includeOptimize: false, force: true, showLoading: true)
+            async let payload: Void = self.refreshUsagePayloads(force: true, showLoading: true)
             async let quotas: Bool = self.refreshLiveQuotaProgressIfDue(force: true)
-            if needsTodayTotal {
-                await self.store.refreshQuietly(period: .today, force: true)
-            }
             _ = await payload
             guard self.manualRefreshGeneration == generation, !Task.isCancelled else { return }
             self.lastRefreshTime = Date()
@@ -674,7 +683,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         withObservationTracking { [weak self] in
             guard let self else { return }
             _ = self.store.payload
-            _ = self.store.todayPayload
+            _ = self.store.menubarPeriod
+            _ = self.store.menubarPayload
             // Track currency so the menubar title catches up immediately on
             // currency switch instead of waiting for the next 30s payload tick.
             _ = self.store.currency
@@ -786,22 +796,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
             attachment.bounds = CGRect(x: 0, y: -3, width: size.width, height: size.height)
         }
 
-        let hasPayload = store.todayPayload != nil
+        let menubarPeriod = store.menubarPeriod
+        let menubarPayload = store.menubarPayload
+        let hasPayload = menubarPayload != nil
         let compact = isCompact
+        let suffix = menubarPeriod.menubarSuffix(compact: compact)
         let valueText: String
-        if store.displayMetric == .tokens, let p = store.todayPayload?.current {
+        if store.displayMetric == .tokens, let p = menubarPayload?.current {
             let out = formatTokensMenubar(Double(p.outputTokens))
             let inp = formatTokensMenubar(Double(p.inputTokens))
-            valueText = compact ? "↑\(out)↓\(inp)" : " ↑\(out) ↓\(inp)"
-        } else if store.displayMetric == .totalTokens, let p = store.todayPayload?.current {
+            valueText = compact ? "↑\(out)↓\(inp)\(suffix)" : " ↑\(out) ↓\(inp)\(suffix)"
+        } else if store.displayMetric == .totalTokens, let p = menubarPayload?.current {
             let total = formatTokensMenubar(Double(p.inputTokens + p.outputTokens))
-            valueText = compact ? total : " \(total) tok"
+            valueText = compact ? "\(total)\(suffix)" : " \(total) tok\(suffix)"
         } else {
             let fallback = compact ? "$-" : "$—"
-            let formatted = store.todayPayload?.current.cost
+            let formatted = menubarPayload?.current.cost
             valueText = compact
-                ? (formatted?.asCompactCurrencyWhole() ?? fallback)
-                : " " + (formatted?.asCompactCurrency() ?? fallback)
+                ? (formatted?.asCompactCurrencyWhole() ?? fallback) + suffix
+                : " " + (formatted?.asCompactCurrency() ?? fallback) + suffix
         }
 
         var textAttrs: [NSAttributedString.Key: Any] = [.font: font, .baselineOffset: -1.0]
@@ -813,6 +826,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         composed.append(NSAttributedString(attachment: attachment))
         composed.append(NSAttributedString(string: valueText, attributes: textAttrs))
         button.attributedTitle = composed
+        button.toolTip = "CodeBurn \(menubarPeriod.menubarMetricLabel)"
     }
 
     private func formatTokensMenubar(_ n: Double) -> String {

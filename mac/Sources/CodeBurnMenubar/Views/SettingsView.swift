@@ -48,6 +48,15 @@ private struct GeneralSettingsTab: View {
                     Text("Tokens (↑↓)").tag(DisplayMetric.tokens)
                     Text("Total Tokens").tag(DisplayMetric.totalTokens)
                 }
+                Picker("Period", selection: Binding(
+                    get: { store.menubarPeriod },
+                    set: { store.setMenubarPeriod($0) }
+                )) {
+                    ForEach(Period.menubarMetricCases) { period in
+                        Text(period.menubarMetricLabel).tag(period)
+                    }
+                }
+                .pickerStyle(.menu)
                 Picker("Accent", selection: Binding(
                     get: { store.accentPreset },
                     set: { store.accentPreset = $0 }
