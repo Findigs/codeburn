@@ -3,6 +3,10 @@
 ## Unreleased
 
 ### Added (CLI)
+- **MCP project profile advisor.** `codeburn optimize` now flags MCP servers
+  that are useful in one project but loaded into other projects where they are
+  never invoked, with a project-scoping prompt that preserves the hot workflow
+  while reducing cold-project schema overhead. Thanks @ozymandiashh. (#356)
 - **MCP and skill reliability report.** `codeburn optimize` now detects MCP
   servers and skills whose edit turns are disproportionately retry-heavy,
   using turn-level MCP/Skill call evidence and a shared-turn token estimate so
