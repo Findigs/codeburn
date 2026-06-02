@@ -20,6 +20,11 @@ enum CodeburnCLI {
         for dir in ["\(home)/.volta/bin", "\(home)/.npm-global/bin", "\(home)/.asdf/shims"] {
             paths.append(dir)
         }
+
+        // fnm
+        let fnmBin = "\(home)/.local/share/fnm/aliases/default/bin"
+        if FileManager.default.fileExists(atPath: fnmBin) { paths.append(fnmBin) }
+
         let nvmDir = ProcessInfo.processInfo.environment["NVM_DIR"] ?? "\(home)/.nvm"
         let versionsDir = "\(nvmDir)/versions/node"
         if let entries = try? FileManager.default.contentsOfDirectory(atPath: versionsDir) {

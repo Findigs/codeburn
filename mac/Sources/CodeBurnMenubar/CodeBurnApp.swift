@@ -33,7 +33,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     private var statusItem: NSStatusItem!
     private var popover: NSPopover!
     fileprivate let store = AppStore()
-    let updateChecker = UpdateChecker()
     /// Held for the lifetime of the app to opt out of App Nap and Automatic Termination.
     private var backgroundActivity: NSObjectProtocol?
     private var pendingRefreshWork: DispatchWorkItem?
@@ -84,9 +83,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         startRefreshLoop()
         setupWakeObservers()
         removeLegacyRefreshAgent()
-        registerLoginItemIfNeeded()
         observeSubscriptionDisconnect()
-        Task { await updateChecker.checkIfNeeded() }
     }
 
     private func setupWakeObservers() {
@@ -193,38 +190,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         try? unload.run()
         unload.waitUntilExit()
         try? fm.removeItem(atPath: destPath)
-    }
-
-    private func registerLoginItemIfNeeded() {
-        let key = "codeburn.loginItemRegistered"
-        guard !UserDefaults.standard.bool(forKey: key) else { return }
-
-        let appPath = Bundle.main.bundlePath
-        let script = "tell application \"System Events\" to make login item at end with properties {path:\(appleScriptStringLiteral(appPath)), hidden:false}"
-
-        let process = Process()
-        process.launchPath = "/usr/bin/osascript"
-        process.arguments = ["-e", script]
-        process.standardOutput = FileHandle.nullDevice
-        process.standardError = FileHandle.nullDevice
-
-        do {
-            try process.run()
-            process.waitUntilExit()
-            if process.terminationStatus == 0 {
-                UserDefaults.standard.set(true, forKey: key)
-            }
-        } catch {
-            NSLog("CodeBurn: Login item registration failed: \(error)")
-        }
-    }
-
-    private func appleScriptStringLiteral(_ value: String) -> String {
-        var escaped = value.replacingOccurrences(of: "\\", with: "\\\\")
-        escaped = escaped.replacingOccurrences(of: "\"", with: "\\\"")
-        escaped = escaped.replacingOccurrences(of: "\r", with: "")
-        escaped = escaped.replacingOccurrences(of: "\n", with: "")
-        return "\"\(escaped)\""
     }
 
     private var lastRefreshTime: Date = .distantPast
@@ -773,7 +738,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
 
         let content = MenuBarContent()
             .environment(store)
-            .environment(updateChecker)
             .frame(width: popoverWidth)
 
         popover.contentViewController = NSHostingController(rootView: content)
@@ -827,10 +791,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         menu.addItem(refreshNow)
 
         menu.addItem(.separator())
-        let updateItem = NSMenuItem(title: "Check for Updates", action: #selector(checkForUpdates), keyEquivalent: "")
-        updateItem.target = self
-        menu.addItem(updateItem)
-        menu.addItem(.separator())
         let quitItem = NSMenuItem(title: "Quit CodeBurn", action: #selector(quitApp), keyEquivalent: "q")
         quitItem.target = self
         menu.addItem(quitItem)
@@ -874,45 +834,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
 
     @objc private func refreshNowAction() {
         refreshSubscriptionNow()
-    }
-
-    private func codeburnAlertIcon() -> NSImage? {
-        let config = NSImage.SymbolConfiguration(pointSize: 32, weight: .medium)
-        guard let symbol = NSImage(systemSymbolName: "flame.fill", accessibilityDescription: "CodeBurn")?
-            .withSymbolConfiguration(config) else { return nil }
-        let size = NSSize(width: 64, height: 64)
-        let img = NSImage(size: size, flipped: false) { rect in
-            let symbolSize = symbol.size
-            let x = (rect.width - symbolSize.width) / 2
-            let y = (rect.height - symbolSize.height) / 2
-            symbol.draw(in: NSRect(x: x, y: y, width: symbolSize.width, height: symbolSize.height))
-            return true
-        }
-        img.isTemplate = false
-        return img
-    }
-
-    @objc private func checkForUpdates() {
-        Task {
-            await updateChecker.check()
-            let alert = NSAlert()
-            alert.icon = codeburnAlertIcon()
-            if let error = updateChecker.updateError {
-                alert.messageText = "Update Check Failed"
-                alert.informativeText = error
-                alert.alertStyle = .warning
-            } else if updateChecker.updateAvailable, let latest = updateChecker.latestVersion {
-                alert.messageText = "Update Available"
-                alert.informativeText = "\(AppVersion.display(latest)) is available (you have \(AppVersion.display(updateChecker.currentVersion))). Run:\n\ncodeburn menubar --force"
-                alert.alertStyle = .informational
-            } else {
-                alert.messageText = "Up to Date"
-                alert.informativeText = "You're on the latest version (\(AppVersion.display(updateChecker.currentVersion)))."
-                alert.alertStyle = .informational
-            }
-            alert.addButton(withTitle: "OK")
-            alert.runModal()
-        }
     }
 
     @objc private func quitApp() {

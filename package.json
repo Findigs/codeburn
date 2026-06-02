@@ -1,6 +1,6 @@
 {
   "name": "codeburn",
-  "version": "0.9.11",
+  "version": "0.8.8",
   "description": "See where your AI coding tokens go - by task, tool, model, and project",
   "type": "module",
   "main": "./dist/cli.js",
@@ -11,21 +11,17 @@
     "dist"
   ],
   "scripts": {
-    "bundle-litellm": "node scripts/bundle-litellm.mjs",
-    "build": "node scripts/bundle-litellm.mjs && tsup && node -e \"const fs=require('fs'); fs.copyFileSync('src/cli.ts','dist/cli.js'); fs.chmodSync('dist/cli.js',0o755)\"",
+    "build": "tsup",
     "dev": "tsx src/cli.ts",
     "test": "vitest",
-    "prepublishOnly": "npm run build"
+    "update-pricing": "curl -sL https://raw.githubusercontent.com/BerriAI/litellm/main/model_prices_and_context_window.json | node scripts/prune-pricing.mjs"
   },
   "keywords": [
     "claude-code",
     "cursor",
     "codex",
-    "kimi",
-    "ibm-bob",
     "opencode",
     "pi",
-    "codebuff",
     "ai-coding",
     "token-usage",
     "cost-tracking",
@@ -33,24 +29,23 @@
     "developer-tools"
   ],
   "engines": {
-    "node": ">=22.13.0"
+    "node": ">=22"
   },
   "author": "AgentSeal <hello@agentseal.org>",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/getagentseal/codeburn.git"
+    "url": "git+https://github.com/Findigs/codeburn.git"
   },
   "bugs": {
-    "url": "https://github.com/getagentseal/codeburn/issues"
+    "url": "https://github.com/Findigs/codeburn/issues"
   },
-  "homepage": "https://github.com/getagentseal/codeburn#readme",
+  "homepage": "https://github.com/Findigs/codeburn#readme",
   "dependencies": {
     "chalk": "^5.4.1",
     "commander": "^13.1.0",
     "ink": "^7.0.0",
-    "react": "^19.2.5",
-    "strip-ansi": "^7.2.0"
+    "react": "^19.2.5"
   },
   "devDependencies": {
     "@types/node": "^22.19.17",

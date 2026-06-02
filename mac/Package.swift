@@ -4,7 +4,7 @@ import PackageDescription
 let package = Package(
     name: "CodeBurnMenubar",
     platforms: [
-        .macOS(.v15)
+        .macOS(.v14)
     ],
     products: [
         .executable(name: "CodeBurnMenubar", targets: ["CodeBurnMenubar"])
@@ -12,10 +12,7 @@ let package = Package(
     targets: [
         .executableTarget(
             name: "CodeBurnMenubar",
-            path: "Sources/CodeBurnMenubar",
-            swiftSettings: [
-                .enableUpcomingFeature("StrictConcurrency")
-            ]
+            path: "Sources/CodeBurnMenubar"
         ),
         .testTarget(
             name: "CodeBurnMenubarTests",

@@ -82,9 +82,8 @@ struct MenuBarContent: View {
 
             FooterBar()
 
-            CLIUpdateBanner()
 
-            StarBanner()
+
         }
     }
 
@@ -263,7 +262,6 @@ private struct BurnFlame: View {
 }
 
 private struct Header: View {
-    @Environment(UpdateChecker.self) private var updateChecker
     @Environment(AppStore.self) private var store
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -280,14 +278,17 @@ private struct Header: View {
                         .foregroundStyle(.secondary)
                 }
                 Spacer()
-                if updateChecker.updateAvailable || updateChecker.updateError != nil {
-                    UpdateBadge()
-                }
                 AccentPicker()
+
+                Button {
+                    NSApp.terminate(nil)
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
             }
-            // Compact warning row when any connected provider crosses 70%.
-            // Lists all warning providers with their worst-window percent so
-            // the user knows whether to slow down on Claude, Codex, or both.
             QuotaWarningRow(status: store.aggregateQuotaStatus)
         }
         .padding(.horizontal, 14)
@@ -405,43 +406,6 @@ private struct AccentPicker: View {
     }
 }
 
-private struct UpdateBadge: View {
-    @Environment(UpdateChecker.self) private var updateChecker
-
-    var body: some View {
-        Button {
-            if updateChecker.updateAvailable {
-                updateChecker.performUpdate()
-            } else {
-                Task { await updateChecker.check() }
-            }
-        } label: {
-            HStack(spacing: 4) {
-                if updateChecker.isUpdating {
-                    ProgressView()
-                        .controlSize(.mini)
-                        .scaleEffect(0.7)
-                } else if updateChecker.updateError != nil {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .font(.system(size: 10))
-                } else {
-                    Image(systemName: "arrow.down.circle.fill")
-                        .font(.system(size: 10))
-                }
-                Text(updateChecker.isUpdating ? "Updating..." : (updateChecker.updateError == nil ? "Update" : "Failed"))
-                    .font(.system(size: 10, weight: .medium))
-            }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
-        }
-        .buttonStyle(.borderedProminent)
-        .tint(Theme.brandAccent)
-        .controlSize(.mini)
-        .disabled(updateChecker.isUpdating)
-        .help(updateChecker.updateError ?? "Install the latest menubar build")
-    }
-}
-
 struct FlameMark: View {
     var body: some View {
         ZStack {
@@ -457,105 +421,6 @@ struct FlameMark: View {
             Image(systemName: "flame.fill")
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(.white)
-        }
-    }
-}
-
-struct CLIUpdateBanner: View {
-    @Environment(UpdateChecker.self) private var updateChecker
-
-    var body: some View {
-        if updateChecker.cliUpdateAvailable {
-            HStack(spacing: 6) {
-                Image(systemName: "arrow.up.circle.fill")
-                    .font(.system(size: 10, weight: .semibold))
-                    .foregroundStyle(.blue)
-
-                Text("CLI \(updateChecker.latestCliVersion ?? "") available")
-                    .font(.system(size: 10.5, weight: .medium))
-                    .foregroundStyle(.primary)
-
-                Button {
-                    NSPasteboard.general.clearContents()
-                    NSPasteboard.general.setString(updateChecker.cliUpdateCommand, forType: .string)
-                } label: {
-                    HStack(spacing: 3) {
-                        Text(updateChecker.cliUpdateCommand)
-                            .font(.system(size: 10, weight: .medium, design: .monospaced))
-                        Image(systemName: "doc.on.doc")
-                            .font(.system(size: 8))
-                    }
-                    .foregroundStyle(.blue)
-                }
-                .buttonStyle(.plain)
-                .help("Copy update command to clipboard")
-
-                Spacer(minLength: 0)
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 6)
-            .background(Color.blue.opacity(0.06))
-            .overlay(alignment: .top) {
-                Rectangle()
-                    .fill(Color.secondary.opacity(0.18))
-                    .frame(height: 0.5)
-            }
-        }
-    }
-}
-
-private let starBannerGitHubURL = URL(string: "https://github.com/getagentseal/codeburn")!
-
-/// Shown at the very bottom on first launch. A small terracotta strip nudges users to star the
-/// repo; clicking opens GitHub, clicking the close icon hides it forever (persisted to
-/// UserDefaults so it never returns across launches).
-struct StarBanner: View {
-    @AppStorage("codeburn.starBannerDismissed") private var dismissed: Bool = false
-
-    var body: some View {
-        if !dismissed {
-            HStack(spacing: 8) {
-                Image(systemName: "star.fill")
-                    .font(.system(size: 10, weight: .semibold))
-                    .foregroundStyle(Theme.brandAccent)
-
-                Button {
-                    NSWorkspace.shared.open(starBannerGitHubURL)
-                } label: {
-                    HStack(spacing: 4) {
-                        Text("Enjoying CodeBurn?")
-                            .foregroundStyle(.primary)
-                        Text("Star us on GitHub")
-                            .foregroundStyle(Theme.brandAccent)
-                            .underline(true, pattern: .solid)
-                    }
-                    .font(.system(size: 10.5, weight: .medium))
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-
-                Spacer()
-
-                Button {
-                    dismissed = true
-                } label: {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 9, weight: .semibold))
-                        .foregroundStyle(.secondary)
-                        .padding(4)
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .help("Hide this banner")
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 6)
-            .background(Theme.brandAccent.opacity(0.08))
-            .overlay(alignment: .top) {
-                Rectangle()
-                    .fill(Color.secondary.opacity(0.18))
-                    .frame(height: 0.5)
-            }
         }
     }
 }

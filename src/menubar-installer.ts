@@ -15,7 +15,7 @@ import {
 /// Public GitHub repo that hosts macOS release builds. CLI and menubar releases share
 /// the repository, so we scan recent releases and choose the newest `mac-v*` release
 /// that actually contains the menubar zip.
-const RELEASE_API = 'https://api.github.com/repos/getagentseal/codeburn/releases?per_page=20'
+const RELEASE_API = 'https://api.github.com/repos/Findigs/codeburn/releases?per_page=20'
 const APP_BUNDLE_NAME = 'CodeBurnMenubar.app'
 const EXPECTED_BUNDLE_ID = 'org.agentseal.codeburn-menubar'
 const VERSIONED_ASSET_PATTERN = /^CodeBurnMenubar-v.+\.zip$/
@@ -37,7 +37,7 @@ export function resolveMenubarReleaseAssets(release: ReleaseResponse): ResolvedA
   if (!zip) {
     throw new Error(
       `No ${APP_BUNDLE_NAME} versioned zip found in release ${release.tag_name}. ` +
-      `Check https://github.com/getagentseal/codeburn/releases.`
+      `Check https://github.com/Findigs/codeburn/releases.`
     )
   }
   const checksum = release.assets.find(a => a.name === `${zip.name}.sha256`)

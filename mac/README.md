@@ -6,25 +6,27 @@ Native Swift + SwiftUI menubar app. The codeburn menubar surface.
 
 - macOS 14+ (Sonoma)
 - Swift 6.0+ toolchain (bundled with Xcode 16 or standalone)
-- `codeburn` CLI installed globally (`npm install -g codeburn`)
+- `codeburn` CLI installed globally (`npm install -g github:Findigs/codeburn`) or available at a path you pass via `CODEBURN_BIN`
 
 ## Install (end users)
 
 One command:
 
 ```bash
-codeburn menubar
+npx github:Findigs/codeburn menubar
 ```
 
-That's it. The command records the persistent `codeburn` CLI path, downloads the latest `.app` from the newest `mac-v*` GitHub Release with a matching checksum, verifies it, drops it into `~/Applications`, clears Gatekeeper quarantine, and launches it. Re-running it upgrades in place with `--force`, or just launches the existing copy otherwise.
+That's it. The command downloads the latest `.app` from GitHub Releases, drops it into `~/Applications`, clears Gatekeeper quarantine, and launches it. Re-running it upgrades in place with `--force`, or just launches the existing copy otherwise.
+
+If you already have the CLI installed globally (`npm install -g github:Findigs/codeburn`), `codeburn menubar` works the same way.
 
 ### Build from source
 
 For contributors running a local build instead of the packaged release:
 
 ```bash
-npm install -g codeburn                       # CLI the app shells out to for data
-git clone https://github.com/getagentseal/codeburn.git
+npm install -g github:Findigs/codeburn        # CLI the app shells out to for data
+git clone https://github.com/Findigs/codeburn.git
 cd codeburn/mac
 swift build -c release
 .build/release/CodeBurnMenubar                # launch
@@ -37,7 +39,7 @@ cd mac
 swift build
 # Point the app at your dev CLI build instead of the globally installed `codeburn`:
 npm --prefix .. run build
-CODEBURN_ALLOW_DEV_BIN=1 CODEBURN_BIN="node $(pwd)/../dist/cli.js" swift run
+CODEBURN_BIN="node $(pwd)/../dist/cli.js" swift run
 ```
 
 The app registers itself as a menubar accessory (`LSUIElement = true` at runtime). No Dock icon.
@@ -46,7 +48,7 @@ The app registers itself as a menubar accessory (`LSUIElement = true` at runtime
 
 On launch and every 60 seconds thereafter, the app spawns `codeburn status --format menubar-json --no-optimize` directly (argv, no shell) via `CodeburnCLI.makeProcess` and decodes the JSON into `MenubarPayload`. The manual refresh button in the footer invokes the same command without `--no-optimize`, which includes optimize findings but takes longer.
 
-Release installs record a persistent absolute CLI path in `~/Library/Application Support/CodeBurn/codeburn-cli-path.v1`, then fall back to Homebrew's common `codeburn` locations. For development only, set `CODEBURN_ALLOW_DEV_BIN=1` with `CODEBURN_BIN`; the value is validated against a strict allowlist before use, so a malicious env var can't inject shell commands.
+Override the binary via the `CODEBURN_BIN` environment variable (default: `codeburn` on PATH). The value is validated against a strict allowlist (alphanumerics plus `._/-` space) before use, so a malicious env var can't inject shell commands.
 
 ## Project layout
 

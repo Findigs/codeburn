@@ -1,4 +1,4 @@
-import { readFile, writeFile, mkdir, rename, stat, unlink } from 'fs/promises'
+import { readFile, mkdir, rename, stat, unlink, open, lstat } from 'fs/promises'
 import { join } from 'path'
 import { homedir } from 'os'
 import { randomBytes } from 'crypto'
@@ -69,18 +69,24 @@ export async function writeCachedResults(dbPath: string, calls: ParsedProviderCa
     calls,
   }
 
-  // Atomic write: stage to a randomized temp file in the same directory,
-  // then rename onto the final path. rename() is atomic on POSIX, so a
-  // crash mid-write never leaves a half-written cache, and concurrent
-  // CLI invocations using their own random temp names cannot interleave
-  // bytes in the destination file (they only race on the final rename,
-  // last-writer-wins, both with valid content).
   const target = getCachePath()
-  const tempPath = `${target}.${randomBytes(8).toString('hex')}.tmp`
   try {
-    await writeFile(tempPath, JSON.stringify(cache), 'utf-8')
+    const s = await lstat(target)
+    if (s.isSymbolicLink()) return
+  } catch {}
+
+  const tempPath = `${target}.${randomBytes(8).toString('hex')}.tmp`
+  const handle = await open(tempPath, 'w', 0o600)
+  try {
+    await handle.writeFile(JSON.stringify(cache), { encoding: 'utf-8' })
+    await handle.sync()
+  } finally {
+    await handle.close()
+  }
+  try {
     await rename(tempPath, target)
-  } catch {
-    await unlink(tempPath).catch(() => {})
+  } catch (err) {
+    try { await unlink(tempPath) } catch {}
+    throw err
   }
 }
