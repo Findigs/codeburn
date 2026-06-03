@@ -2,7 +2,7 @@ import { cpSync, mkdirSync } from 'fs'
 import { defineConfig } from 'tsup'
 
 export default defineConfig({
-  entry: ['src/main.ts'],
+  entry: ['src/main.ts', 'src/cli.ts'],
   format: ['esm'],
   target: 'node20',
   outDir: 'dist',

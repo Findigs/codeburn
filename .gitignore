@@ -32,6 +32,8 @@ npm-debug.log*
 
 # Build artifacts
 *.tsbuildinfo
+# dist/ is rebuilt by `tsup` on every `just install`; never commit the output
+dist/
 
 # Desktop app experiments
 desktop/
